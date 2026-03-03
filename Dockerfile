@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Copiar archivos de definición de dependencias
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm install
 
 # 2. Construir el proyecto Next.js
 FROM base AS builder
