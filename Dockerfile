@@ -43,6 +43,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Exponer el puerto configurado en Coolify
 EXPOSE 3001
 ENV PORT=3001
+ENV HOSTNAME=0.0.0.0
 
 # Arrancar el servidor standalone generado por Next.js
 CMD ["node", "server.js"]
