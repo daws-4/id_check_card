@@ -71,11 +71,11 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [x] Crear el esquema `AttendanceLog` (user_id, organization_id, reader_id, timestamp, tipo: entrada/salida).
 
 ### 2. Backend & API (Next.js)
-- [ ] Configurar la conexión a MongoDB usando Mongoose.
-- [ ] Crear endpoint `POST /api/attendance` para recibir datos del ESP32.
-- [ ] Lógica del endpoint `attendance`: Validar `esp32_id` para obtener la organización, buscar al usuario por `card_id`, verificar membresía y guardar el log.
-- [ ] Crear endpoints CRUD para la gestión de Usuarios, Organizaciones y Lectores.
-- [ ] Configurar la autenticación (ej. NextAuth.js o JWT) para proteger las rutas de administración.
+- [x] Configurar la conexión a MongoDB usando Mongoose.
+- [x] Crear endpoint `POST /api/attendance` para recibir datos del ESP32.
+- [x] Lógica del endpoint `attendance`: Validar `esp32_id` para obtener la organización, buscar al usuario por `card_id`, verificar membresía y guardar el log.
+- [x] Crear endpoints CRUD para la gestión de Usuarios, Organizaciones y Lectores.
+- [x] Configurar la autenticación (ej. NextAuth.js o JWT) para proteger las rutas de administración.
 
 ### 3. Paneles Administrativos Web (Next.js)
 - [ ] Desarrollar el **Panel Súper Administrador**: vistas para crear/editar organizaciones y dar de alta/reasignar IDs de lectores (`esp32_id`).
