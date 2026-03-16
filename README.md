@@ -64,11 +64,11 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 
 ### 1. Base de Datos (MongoDB)
 - [ ] Configurar el cluster de MongoDB (ej. MongoDB Atlas) y obtener la URI de conexión.
-- [ ] Crear el esquema `User` (nombre, email, password_hash, `nfc_card_id` único).
-- [ ] Crear el esquema `Organization` (nombre, tipo, configuraciones básicas).
-- [ ] Crear el esquema `Membership` (user_id, organization_id, rol: admin/user).
-- [ ] Crear el esquema `Reader` o `Device` (`esp32_id` único, organization_id referenciada, ubicación, estado).
-- [ ] Crear el esquema `AttendanceLog` (user_id, organization_id, reader_id, timestamp, tipo: entrada/salida).
+- [x] Crear el esquema `User` (nombre, email, password_hash, `nfc_card_id` único).
+- [x] Crear el esquema `Organization` (nombre, tipo, configuraciones básicas).
+- [x] Crear el esquema `Membership` (user_id, organization_id, rol: admin/user).
+- [x] Crear el esquema `Reader` o `Device` (`esp32_id` único, organization_id referenciada, ubicación, estado).
+- [x] Crear el esquema `AttendanceLog` (user_id, organization_id, reader_id, timestamp, tipo: entrada/salida).
 
 ### 2. Backend & API (Next.js)
 - [ ] Configurar la conexión a MongoDB usando Mongoose.
