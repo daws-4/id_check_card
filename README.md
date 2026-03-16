@@ -71,7 +71,6 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [ ] Crear el esquema `AttendanceLog` (user_id, organization_id, reader_id, timestamp, tipo: entrada/salida).
 
 ### 2. Backend & API (Next.js)
-- [ ] Inicializar el proyecto Next.js (`npx create-next-app`).
 - [ ] Configurar la conexión a MongoDB usando Mongoose.
 - [ ] Crear endpoint `POST /api/attendance` para recibir datos del ESP32.
 - [ ] Lógica del endpoint `attendance`: Validar `esp32_id` para obtener la organización, buscar al usuario por `card_id`, verificar membresía y guardar el log.
