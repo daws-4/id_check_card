@@ -1,53 +1,53 @@
-# Next.js & HeroUI Template
+# Secure-Pass-NFC
 
-This is a template for creating applications using Next.js 14 (app directory) and HeroUI (v2).
+Secure-Pass-NFC es una plataforma centralizada integral (Web, Móvil y Hardware) de control de acceso y gestión de personal/estudiantes. Utiliza tecnología NFC (RFID) para que cada usuario disponga de una tarjeta única con su ID válido en toda la plataforma, sin importar a cuántas organizaciones pertenezca.
 
-[Try it on CodeSandbox](https://githubbox.com/heroui-inc/heroui/next-app-template)
+## 🚀 Tecnologías Utilizadas
 
-## Technologies Used
+- **Next.js (React & JavaScript)**: Framework principal para el servidor (API Routes) y la plataforma web (Paneles de administración y reportes).
+- **MongoDB**: Base de datos NoSQL flexible, ideal para el modelo centralizado.
+- **n8n**: Plataforma de automatización de flujos de trabajo e integración de agentes de IA, funcionando funcionalmente como un backend alternativo e inteligente para notificaciones y tareas.
+- **React Native + Expo**: Para el desarrollo de la aplicación móvil multiplataforma (iOS y Android).
+- **ESP32 (programado en entorno Arduino) y Lectores NFC**: Hardware especializado para la lectura de las tarjetas RFID en los puntos de acceso físico.
+- **PocketBase**: Backend as a Service complementario (opcional/según surja la necesidad).
 
-- [Next.js 14](https://nextjs.org/docs/getting-started)
-- [HeroUI v2](https://heroui.com/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Tailwind Variants](https://tailwind-variants.org)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Framer Motion](https://www.framer.com/motion/)
-- [next-themes](https://github.com/pacocoursey/next-themes)
+---
 
-## How to Use
+## 🎯 Arquitectura Centralizada
 
-### Use the template with create-next-app
+El núcleo de la aplicación es su **centralización**. Todas las organizaciones bajo este ecosistema operan sobre el mismo servidor y base de datos, lo que elimina la redundancia de registros. 
 
-To create a new project based on this template using `create-next-app`, run the following command:
+**Ejemplo de flujo:**
+Si un usuario trabaja en una empresa en la mañana y asiste a otra organización en la tarde, utilizará la **misma tarjeta NFC** (con un único ID). Cuando la tarjeta pasa por el lector, el ESP32 transmite el ID del usuario y su identificador propio (para identificar a la organización). El sistema procesa la entrada en la organización correspondiente sin requerir que el usuario esté registrado dos veces en la base de datos global.
 
-```bash
-npx create-next-app -e https://github.com/heroui-inc/next-app-template
-```
+---
 
-### Install dependencies
+## 🏗️ Fases y Estructura del Proyecto
 
-You can use one of them `npm`, `yarn`, `pnpm`, `bun`, Example using `npm`:
+### Fase 1: Base de Datos Centralizada (MongoDB)
+Diseño de los modelos de datos usando referencias:
+- **Users**: Datos personales, credenciales de acceso y el ID único grabado en la tarjeta NFC.
+- **Organizations**: Detalles de la entidad (empresa, colegio, etc.).
+- **Memberships**: Colección que vincula a un *User* con una *Organization* determinando su rol.
+- **AttendanceLogs**: Registros de lectura del ESP32 (usuario, organización, timestamp, tipo de evento: entrada o salida).
 
-```bash
-npm install
-```
+### Fase 2: Plataforma Web, Servidor y Automatizaciones (Next.js & n8n)
+El servidor Next.js actuará como gestor principal, apoyado por n8n para la automatización:
+- **Recepción de Datos (ESP32)**: Endpoint que valida el ID de tarjeta y el origen del lector, registrando la asistencia.
+- **Automatización e IA (n8n)**: Recepción de webhooks desde el servidor para disparar notificaciones, reportes o correos automáticos (p.ej. notificar a los padres el ingreso de un estudiante).
+- **Paneles Web**:
+  - *Súper Administrador*: Gestión global de organizaciones.
+  - *Panel de Organización*: Dashboard en tiempo real según conveniencia de la empresa (control de empleados, reportes) o colegio (entradas/salidas, carga de notas, horarios y tareas).
 
-### Run the development server
+### Fase 3: Plataforma Móvil (React Native + Expo)
+Aplicación para el usuario final (empleados, estudiantes, representantes) para proveer información en tiempo real:
+- **Accesos y Reportes**: Vistas del historial de entradas/salidas.
+- **Información Específica por Organización**: Si es un colegio, los padres pueden ver horarios de clase, notas y lista de tareas. Si es una empresa, visualización de horas de trabajo y estatus, adaptándose según la membresía del usuario.
 
-```bash
-npm run dev
-```
+### Fase 4: Integración del Hardware (ESP32)
+Dispositivo externo ubicado en los puntos de control programado vía Arduino IDE. Se recomienda:
+- **Mapeo de hardware**: El ESP32 envía el ID de la tarjeta NFC junto a su propia dirección MAC única. El servidor Next.js reconoce a qué organización pertenece ese lector, permitiendo que el hardware sea escalable y tenga el mismo código base ("plug and play" para el instalador).
 
-### Setup pnpm (optional)
-
-If you are using `pnpm`, you need to add the following code to your `.npmrc` file:
-
-```bash
-public-hoist-pattern[]=*@heroui/*
-```
-
-After modifying the `.npmrc` file, you need to run `pnpm install` again to ensure that the dependencies are installed correctly.
-
-## License
-
-Licensed under the [MIT license](https://github.com/heroui-inc/next-app-template/blob/main/LICENSE).
+### Fase 5: Pruebas y Despliegue
+- **Pruebas de Carga**: Simulación masiva de lecturas para validar a MongoDB y Next.js.
+- **Despliegue**: Plataforma web en servidores escalables, base de datos en clúster y app móvil subida a tiendas.
