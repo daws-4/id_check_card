@@ -78,10 +78,10 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [x] Configurar la autenticación (ej. NextAuth.js o JWT) para proteger las rutas de administración.
 
 ### 3. Paneles Administrativos Web (Next.js)
-- [ ] Desarrollar el **Panel Súper Administrador**: vistas para crear/editar organizaciones y dar de alta/reasignar IDs de lectores (`esp32_id`).
-- [ ] Desarrollar el **Panel de Organización**: dashboard principal con métricas.
-- [ ] Panel de Org: Vista para gestionar miembros (empleados/estudiantes).
-- [ ] Panel de Org: Vista de reportes de asistencia en tiempo real.
+- [x] Desarrollar el **Panel Súper Administrador**: vistas para crear/editar organizaciones y dar de alta/reasignar IDs de lectores (`esp32_id`).
+- [x] Desarrollar el **Panel de Organización**: dashboard principal con métricas.
+- [x] Panel de Org: Vista para gestionar miembros (empleados/estudiantes).
+- [x] Panel de Org: Vista de reportes de asistencia en tiempo real.
 
 ### 4. Automatizaciones (n8n)
 - [ ] Configurar una instancia de n8n (local o cloud).
@@ -89,8 +89,8 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [ ] Crear un workflow en n8n que reciba el Webhook y envíe una alerta (ej. un correo de prueba o mensaje de Telegram/WhatsApp) informando la entrada/salida.
 
 ### 5. Hardware (ESP32)
-- [ ] Instalar librerías necesarias en Arduino IDE (WiFi, HTTPClient, MFRC522 para RFID).
-- [ ] Escribir el código para conectar el ESP32 a una red WiFi.
+- [x] Instalar librerías necesarias en Arduino IDE (WiFi, HTTPClient, MFRC522 para RFID).
+- [x] Escribir el código para conectar el ESP32 a una red WiFi.
 - [ ] Implementar la lectura del UID de la tarjeta a través del módulo MFRC522.
 - [ ] Declarar la constante `esp32_id` (ej. `const String ESP32_ID = "DEV_001";`).
 - [ ] Escribir la función HTTP POST que envíe el JSON `{"card_id": "...", "esp32_id": "..."}` al endpoint de Next.js cada vez que se detecte una tarjeta.

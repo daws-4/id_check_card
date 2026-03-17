@@ -5,8 +5,13 @@ import { Membership } from '@/models/Membership';
 export async function GET(req: Request) {
   try {
     await connectDB();
-    const memberships = await Membership.find({})
-      .populate('user_id', 'name email')
+    const url = new URL(req.url);
+    const organization_id = url.searchParams.get("organization_id");
+    
+    const filter = organization_id ? { organization_id } : {};
+    
+    const memberships = await Membership.find(filter)
+      .populate('user_id', 'name email nfc_card_id')
       .populate('organization_id', 'name type');
     return NextResponse.json(memberships);
   } catch (error: any) {

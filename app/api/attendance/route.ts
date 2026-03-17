@@ -5,6 +5,26 @@ import { User } from '@/models/User';
 import { Membership } from '@/models/Membership';
 import { AttendanceLog } from '@/models/AttendanceLog';
 
+export async function GET(req: Request) {
+  try {
+    await connectDB();
+    const url = new URL(req.url);
+    const organization_id = url.searchParams.get("organization_id");
+    
+    const filter = organization_id ? { organization_id } : {};
+    
+    const logs = await AttendanceLog.find(filter)
+      .populate('user_id', 'name email nfc_card_id')
+      .populate('reader_id', 'location esp32_id')
+      .sort({ timestamp: -1 })
+      .limit(100); // Limit to last 100 for now to avoid huge payloads
+
+    return NextResponse.json(logs);
+  } catch (error: any) {
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
