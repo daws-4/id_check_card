@@ -110,37 +110,37 @@ export default function ReadersPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Readers & Devices</h2>
+        <h2 className="text-2xl font-bold">Lectores y Dispositivos</h2>
         <Button color="primary" onPress={() => handleOpenModal()}>
-          Add Reader
+          Agregar Lector
         </Button>
       </div>
 
       <Table aria-label="Readers table">
         <TableHeader>
-          <TableColumn>ESP32 ID</TableColumn>
-          <TableColumn>ORGANIZATION</TableColumn>
-          <TableColumn>LOCATION</TableColumn>
-          <TableColumn>STATUS</TableColumn>
-          <TableColumn>ACTIONS</TableColumn>
+          <TableColumn>ID ESP32</TableColumn>
+          <TableColumn>ORGANIZACIÓN</TableColumn>
+          <TableColumn>UBICACIÓN</TableColumn>
+          <TableColumn>ESTADO</TableColumn>
+          <TableColumn>ACCIONES</TableColumn>
         </TableHeader>
         <TableBody
           items={readers}
-          emptyContent={loading ? <Spinner /> : "No readers found."}
+          emptyContent={loading ? <Spinner /> : "No se encontraron lectores."}
         >
           {(reader) => (
             <TableRow key={reader._id}>
               <TableCell className="font-mono">{reader.esp32_id}</TableCell>
-              <TableCell>{reader.organization_id?.name || "Unassigned"}</TableCell>
+              <TableCell>{reader.organization_id?.name || "Sin asignar"}</TableCell>
               <TableCell>{reader.location || "N/A"}</TableCell>
               <TableCell>
                 <span className={`capitalize px-2 py-1 rounded-full text-xs ${reader.status === 'active' ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}`}>
-                  {reader.status}
+                  {reader.status === 'active' ? 'activo' : reader.status === 'inactive' ? 'inactivo' : 'mantenimiento'}
                 </span>
               </TableCell>
               <TableCell>
                 <Button size="sm" variant="flat" onPress={() => handleOpenModal(reader)}>
-                  Edit/Reassign
+                  Editar/Reasignar
                 </Button>
               </TableCell>
             </TableRow>
@@ -153,12 +153,12 @@ export default function ReadersPage() {
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1">
-                {selectedReader ? "Edit/Reassign Reader" : "Register New Reader"}
+                {selectedReader ? "Editar/Reasignar Lector" : "Registrar Nuevo Lector"}
               </ModalHeader>
               <ModalBody>
                 <Input 
-                  label="ESP32 ID" 
-                  placeholder="e.g. DEV_001" 
+                  label="ID ESP32" 
+                  placeholder="ej. DEV_001" 
                   variant="bordered"
                   value={esp32Id}
                   onValueChange={setEsp32Id}
@@ -166,44 +166,44 @@ export default function ReadersPage() {
                 />
                 
                 <Select 
-                  label="Organization" 
-                  placeholder="Select an organization"
+                  label="Organización" 
+                  placeholder="Selecciona una organización"
                   variant="bordered" 
                   selectedKeys={orgId ? [orgId] : []}
                   onChange={(e) => setOrgId(e.target.value)}
                 >
                   {organizations.map((org) => (
-                    <SelectItem key={org._id} value={org._id}>
+                    <SelectItem key={org._id}>
                       {org.name}
                     </SelectItem>
                   ))}
                 </Select>
 
                 <Input 
-                  label="Location (Optional)" 
-                  placeholder="e.g. Main Entrance" 
+                  label="Ubicación (Opcional)" 
+                  placeholder="ej. Entrada Principal" 
                   variant="bordered"
                   value={location}
                   onValueChange={setLocation}
                 />
 
                 <Select 
-                  label="Status" 
+                  label="Estado" 
                   variant="bordered" 
                   selectedKeys={[status]}
                   onChange={(e) => setStatus(e.target.value)}
                 >
-                  <SelectItem key="active" value="active">Active</SelectItem>
-                  <SelectItem key="inactive" value="inactive">Inactive</SelectItem>
-                  <SelectItem key="maintenance" value="maintenance">Maintenance</SelectItem>
+                  <SelectItem key="active">Activo</SelectItem>
+                  <SelectItem key="inactive">Inactivo</SelectItem>
+                  <SelectItem key="maintenance">Mantenimiento</SelectItem>
                 </Select>
               </ModalBody>
               <ModalFooter>
                 <Button color="danger" variant="flat" onPress={onClose}>
-                  Cancel
+                  Cancelar
                 </Button>
                 <Button color="primary" onPress={() => handleSubmit(onClose)} isLoading={isSubmitting}>
-                  {selectedReader ? "Save Changes" : "Register"}
+                  {selectedReader ? "Guardar Cambios" : "Registrar"}
                 </Button>
               </ModalFooter>
             </>

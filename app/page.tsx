@@ -1,48 +1,30 @@
-"use client";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "./api/auth/[...nextauth]/route";
 
-import { useEffect, useState } from "react";
+export default async function Home() {
+  const session = await getServerSession(authOptions);
 
-export default function Home() {
-  const [ids, setIds] = useState<string[]>([]);
+  if (!session) {
+    redirect('/login');
+  }
 
-  useEffect(() => {
-    const eventSource = new EventSource("/api/code");
+  const role = (session.user as any)?.role;
+  const orgs = (session.user as any)?.orgs || [];
 
-    eventSource.onmessage = (event) => {
-      try {
-        const { id } = JSON.parse(event.data);
-        setIds((prev) => [id, ...prev]);
-      } catch {
-        // ignore malformed events
-      }
-    };
+  if (role === 'superadmin') {
+    redirect('/admin');
+  } else if (role === 'org_admin' && orgs.length > 0) {
+    redirect(`/org/${orgs[0]}`);
+  }
 
-    return () => {
-      eventSource.close();
-    };
-  }, []);
-
+  // Regular user or no orgs
   return (
-    <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
-      <h1 className="text-3xl font-bold">IDs recibidos</h1>
-
-      {ids.length === 0 ? (
-        <p className="text-default-400 text-sm">
-          Esperando IDs… Prueba con{" "}
-          <code className="text-primary">/api/code?id=123</code>
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-2 w-full max-w-md">
-          {ids.map((id, i) => (
-            <li
-              key={`${id}-${i}`}
-              className="bg-content1 border border-divider rounded-xl px-4 py-3 font-mono text-sm"
-            >
-              {id}
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+    <div className="flex h-screen items-center justify-center bg-background">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold mb-4">Bienvenido</h1>
+        <p className="text-default-500">No tienes acceso administrativo.</p>
+      </div>
+    </div>
   );
 }

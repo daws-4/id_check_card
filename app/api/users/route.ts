@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   try {
     await connectDB();
     const body = await req.json();
-    const { name, email, password, nfc_card_id } = body;
+    const { name, email, password, nfc_card_id, role } = body;
 
     if (!name || !email || !password || !nfc_card_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -35,7 +35,8 @@ export async function POST(req: Request) {
       name,
       email,
       password_hash,
-      nfc_card_id
+      nfc_card_id,
+      role: role || 'user',
     });
 
     const userObj = newUser.toObject();

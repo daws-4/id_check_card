@@ -9,4 +9,10 @@
 @theme {
     --font-sans: "font", sans-serif;
     --font-mono: "monospace", monospace;
+    
+    --color-tropical-teal: #16bac5ff;
+    --color-maya-blue: #5fbff9ff;
+    --color-lavender-mist: #efe9f4ff;
+    --color-carbon-black: #171d1cff;
+    --color-electric-sapphire: #5863f8ff;
 }

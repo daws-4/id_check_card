@@ -31,16 +31,19 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Check if user has admin role in any organization
-        const adminMembership = await Membership.findOne({ 
+        const memberships = await Membership.find({ 
           user_id: user._id, 
           role: 'admin' 
         });
+
+        const orgIds = memberships.map(m => m.organization_id.toString());
 
         return {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
-          isAdmin: !!adminMembership
+          role: user.role,
+          orgs: orgIds
         };
       }
     })
@@ -49,14 +52,16 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.isAdmin = (user as any).isAdmin;
+        token.role = (user as any).role;
+        token.orgs = (user as any).orgs;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.id;
-        (session.user as any).isAdmin = token.isAdmin;
+        (session.user as any).role = token.role;
+        (session.user as any).orgs = token.orgs;
       }
       return session;
     }
@@ -66,7 +71,7 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
-    // signIn: '/login' // Custom login page can be added later
+    signIn: '/login'
   }
 };
 

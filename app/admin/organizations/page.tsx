@@ -70,21 +70,21 @@ export default function OrganizationsPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Organizations</h2>
+        <h2 className="text-2xl font-bold">Organizaciones</h2>
         <Button color="primary" onPress={onOpen}>
-          Add Organization
+          Agregar Organización
         </Button>
       </div>
 
       <Table aria-label="Organizations table">
         <TableHeader>
-          <TableColumn>NAME</TableColumn>
-          <TableColumn>TYPE</TableColumn>
+          <TableColumn>NOMBRE</TableColumn>
+          <TableColumn>TIPO</TableColumn>
           <TableColumn>ID</TableColumn>
         </TableHeader>
         <TableBody
           items={organizations}
-          emptyContent={loading ? <Spinner /> : "No organizations found."}
+          emptyContent={loading ? <Spinner /> : "No se encontraron organizaciones."}
         >
           {(org) => (
             <TableRow key={org._id}>
@@ -100,34 +100,34 @@ export default function OrganizationsPage() {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">Create Organization</ModalHeader>
+              <ModalHeader className="flex flex-col gap-1">Crear Organización</ModalHeader>
               <ModalBody>
                 <Input 
                   autoFocus 
-                  label="Name" 
-                  placeholder="Enter organization name" 
+                  label="Nombre" 
+                  placeholder="Ingresa el nombre de la organización" 
                   variant="bordered"
                   value={name}
                   onValueChange={setName}
                 />
                 <Select 
-                  label="Type" 
+                  label="Tipo" 
                   variant="bordered" 
                   selectedKeys={[type]}
                   onChange={(e) => setType(e.target.value)}
                 >
-                  <SelectItem key="company" value="company">Company</SelectItem>
-                  <SelectItem key="school" value="school">School</SelectItem>
-                  <SelectItem key="gym" value="gym">Gym</SelectItem>
-                  <SelectItem key="other" value="other">Other</SelectItem>
+                  <SelectItem key="company">Empresa</SelectItem>
+                  <SelectItem key="school">Escuela</SelectItem>
+                  <SelectItem key="gym">Gimnasio</SelectItem>
+                  <SelectItem key="other">Otro</SelectItem>
                 </Select>
               </ModalBody>
               <ModalFooter>
                 <Button color="danger" variant="flat" onPress={onClose}>
-                  Cancel
+                  Cancelar
                 </Button>
                 <Button color="primary" onPress={() => handleCreate(onClose)} isLoading={isSubmitting}>
-                  Create
+                  Crear
                 </Button>
               </ModalFooter>
             </>
