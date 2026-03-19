@@ -14,7 +14,7 @@ async function createSuperAdmin() {
     const usersCollection = db.collection("users");
 
     const email = "villamizarandresdavid@gmail.com";
-    const password = "Shoko.180506";
+    const password = "123456789";
 
     const existingUser = await usersCollection.findOne({ email });
     if (existingUser) {
