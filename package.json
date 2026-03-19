@@ -56,6 +56,7 @@
     "clsx": "2.1.1",
     "framer-motion": "11.18.2",
     "intl-messageformat": "10.7.16",
+    "lightningcss-win32-x64-msvc": "^1.32.0",
     "mongoose": "^9.3.0",
     "next": "^16.1.6",
     "next-auth": "^4.24.13",

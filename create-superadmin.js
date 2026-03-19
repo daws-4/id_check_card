@@ -13,8 +13,8 @@ async function createSuperAdmin() {
     const db = mongoose.connection.db;
     const usersCollection = db.collection("users");
 
-    const email = "villamizarandresdavid@gmail.com";
-    const password = "123456789";
+    const email = "gabrielepradach@gmail.com"||"villamizarandresdavid@gmail.com";
+    const password = "987654321"||"123456789";
 
     const existingUser = await usersCollection.findOne({ email });
     if (existingUser) {
@@ -26,10 +26,10 @@ async function createSuperAdmin() {
     const password_hash = await bcrypt.hash(password, salt);
 
     const newUser = {
-      name: "Andres Villamizar",
+      name: "Gabriel Prada",
       email,
       password_hash,
-      nfc_card_id: "SUPER_ADMIN_NFC_001",
+      nfc_card_id: "SUPER_ADMIN_NFC_002",
       role: "superadmin",
       createdAt: new Date(),
       updatedAt: new Date()
