@@ -26,10 +26,10 @@ async function createSuperAdmin() {
     const password_hash = await bcrypt.hash(password, salt);
 
     const newUser = {
-      name: "Gabriel Prada",
+      name: "Gabriel Prada"||"Andres Villamizar",
       email,
       password_hash,
-      nfc_card_id: "SUPER_ADMIN_NFC_002",
+      nfc_card_id: "SUPER_ADMIN_NFC_002"||"SUPER_ADMIN_NFC_001",
       role: "superadmin",
       createdAt: new Date(),
       updatedAt: new Date()
