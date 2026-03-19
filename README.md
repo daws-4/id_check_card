@@ -107,3 +107,49 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [ ] Probar la reasignación de un lector (cambiar la organización de un `esp32_id` desde el panel web y verificar que los logs vayan a la nueva organización).
 - [ ] Desplegar la plataforma web (ej. Vercel, Railway).
 - [ ] Compilar y probar la aplicación móvil en dispositivos físicos.
+
+
+# WEB
+
+## PANEL SÚPER ADMINISTRADOR
+- [ ] Contar con todas las funciones de edición que tiene el panel de organización.
+- [ ] Crear, editar y eliminar todas las organizaciones del sistema.
+
+## PANEL DE ORGANIZACIÓN
+- [ ] Crear nuevos usuarios o añadir usuarios ya existentes en el sistema global a la organización.
+- [ ] Crear y gestionar distintos grupos de usuarios (catalogados como grupos de estudio o grupos de trabajo).
+- [ ] Asignar usuarios normales como líderes de un grupo.
+- [ ] Permitir a los líderes de un grupo editar, añadir o eliminar usuarios, así como asignarles tareas con fecha límite o repetitivas dentro del grupo asignado.
+- [ ] Asignar horarios a los grupos (con títulos de materias, clases o actividades).
+- [ ] Asignar tareas a los grupos, ya sean con fecha límite o repetitivas (una vez a la semana, al mes o al año).
+- [ ] Registrar la hora de paso por algún lector y asociar lectores a la organización en general o dedicarlos a un grupo en específico.
+> **Nota para Web:** Para la versión web se deben añadir a futuro aún más opciones y métricas de análisis que las indicadas en esta versión esencial.
+
+## PANEL DE USUARIO (Normal / Líder de Grupo)
+- [ ] Visualizar de manera clara sus horarios y tareas asignadas.
+- [ ] Ver y/o editar su información personal (sujeto a si la organización lo permite).
+- [ ] Marcar manualmente como completadas sus tareas.
+- [ ] (Automático) Marcar horarios como cumplidos al pasar por un lector NFC a tiempo.
+- [ ] Calcular y mostrar de forma métrica el cumplimiento: si se cumplió con el horario esperado, cuánto tiempo se estuvo dentro de la organización, horas trabajadas de más (tiempo extra) y tiempo de retraso a la llegada.
+
+---
+
+# MOBILE
+
+## PANEL SÚPER ADMINISTRADOR
+- [ ] Contar con todas las funciones de edición que tiene el panel de organización.
+- [ ] Crear, editar y eliminar todas las organizaciones del sistema.
+
+## PANEL DE ORGANIZACIÓN
+- [ ] Crear nuevos usuarios o añadir usuarios ya existentes en el sistema global a la organización.
+- [ ] Crear y visualizar los distintos grupos de usuarios (estudio o trabajo).
+- [ ] Gestionar qué usuarios actúan como líderes de su grupo (acceso móvil a líderes para añadir/quitar/editar integrantes y asignar tareas con fecha límite o repetitivas).
+- [ ] Asignar horarios y revisar tareas (estatus de límite, y de las tareas recurrentes).
+- [ ] Consultar el registro de los lectores dedicados (general de la organización o propios del grupo).
+
+## PANEL DE USUARIO (Normal / Líder de Grupo)
+- [ ] Visualizar los horarios inmediatos y tareas pendientes desde la aplicación del celular.
+- [ ] Ver su perfil y actualizar su información personal (solo si la configuración de la organización lo ha habilitado).
+- [ ] Marcar rápido que sus tareas fueron efectuadas (completadas).
+- [ ] Ver sus marcajes en tiempo real (cumplimiento automático verificado vía NFC).
+- [ ] Analizar en su vista de la app: si llegó a tiempo, su tiempo transcurrido en las instalaciones orgánicas, su tiempo extra y las llegadas o registros con retraso.
