@@ -138,11 +138,11 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 > **Nota para Web:** Para la versión web se deben añadir a futuro aún más opciones y métricas de análisis que las indicadas en esta versión esencial.
 
 ### PANEL DE USUARIO (Normal / Líder de Grupo)
-- [ ] Visualizar de manera clara sus horarios y tareas asignadas.
-- [ ] Ver y/o editar su información personal (sujeto a si la organización lo permite).
-- [ ] Marcar manualmente como completadas sus tareas.
-- [ ] (Automático) Marcar horarios como cumplidos al pasar por un lector NFC a tiempo.
-- [ ] Calcular y mostrar de forma métrica el cumplimiento: si se cumplió con el horario esperado, cuánto tiempo se estuvo dentro de la organización, horas trabajadas de más (tiempo extra) y tiempo de retraso a la llegada.
+- [x] Visualizar de manera clara sus horarios y tareas asignadas.
+- [x] Ver y/o editar su información personal (sujeto a si la organización lo permite).
+- [x] Marcar manualmente como completadas sus tareas.
+- [x] (Automático) Marcar horarios como cumplidos al pasar por un lector NFC a tiempo.
+- [x] Calcular y mostrar de forma métrica el cumplimiento: si se cumplió con el horario esperado, cuánto tiempo se estuvo dentro de la organización, horas trabajadas de más (tiempo extra) y tiempo de retraso a la llegada.
 
 ---
 
