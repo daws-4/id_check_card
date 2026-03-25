@@ -1,0 +1,302 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@heroui/table";
+import { Button } from "@heroui/button";
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/modal";
+import { Input } from "@heroui/input";
+import { Select, SelectItem } from "@heroui/select";
+import { Spinner } from "@heroui/spinner";
+import { useParams } from "next/navigation";
+
+// Types
+interface User { _id: string; name: string; email: string; }
+interface Membership { _id: string; user_id: User; role: string; }
+interface Task { _id: string; title: string; description: string; due_date?: string; is_recurring: boolean; recurrence?: string; }
+interface Schedule { _id: string; title: string; start_time: string; end_time: string; days_of_week: number[]; }
+
+export default function GroupDetailsPage() {
+  const params = useParams();
+  const orgId = params?.orgId as string;
+  const groupId = params?.groupId as string;
+
+  const [activeTab, setActiveTab] = useState<"members" | "schedules" | "tasks">("members");
+  
+  const [groupName, setGroupName] = useState("");
+  
+  // Data States
+  const [members, setMembers] = useState<Membership[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [orgUsers, setOrgUsers] = useState<{_id: string; user_id: User}[]>([]); // To select from when adding to group
+  const [loading, setLoading] = useState(true);
+
+  // Modals
+  const { isOpen: isMemberOpen, onOpen: onMemberOpen, onOpenChange: onMemberChange } = useDisclosure();
+  const { isOpen: isTaskOpen, onOpen: onTaskOpen, onOpenChange: onTaskChange } = useDisclosure();
+  const { isOpen: isScheduleOpen, onOpen: onScheduleOpen, onOpenChange: onScheduleChange } = useDisclosure();
+
+  // Form States
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [memberRole, setMemberRole] = useState("member");
+  
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDesc, setTaskDesc] = useState("");
+  const [taskDue, setTaskDue] = useState("");
+  
+  const [schedTitle, setSchedTitle] = useState("");
+  const [schedStart, setSchedStart] = useState("");
+  const [schedEnd, setSchedEnd] = useState("");
+  const [schedDays, setSchedDays] = useState<Set<string>>(new Set([]));
+
+  useEffect(() => {
+    fetchGroupData();
+  }, [groupId]);
+
+  useEffect(() => {
+    if (activeTab === "members") fetchMembers();
+    if (activeTab === "schedules") fetchSchedules();
+    if (activeTab === "tasks") fetchTasks();
+  }, [activeTab]);
+
+  const fetchGroupData = async () => {
+    try {
+      const res = await fetch(`/api/groups/${groupId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setGroupName(data.name);
+      }
+    } catch(e) { console.error(e); }
+  };
+
+  const fetchMembers = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupId}/members`);
+      if (res.ok) setMembers(await res.json());
+      // Fetch org users to allow adding existing org members to the group
+      const orgRes = await fetch(`/api/memberships?organization_id=${orgId}`);
+      if (orgRes.ok) setOrgUsers(await orgRes.json());
+    } catch(e) { console.error(e); } finally { setLoading(false); }
+  };
+
+  const fetchTasks = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupId}/tasks`);
+      if (res.ok) setTasks(await res.json());
+    } catch(e) { console.error(e); } finally { setLoading(false); }
+  };
+
+  const fetchSchedules = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupId}/schedules`);
+      if (res.ok) setSchedules(await res.json());
+    } catch(e) { console.error(e); } finally { setLoading(false); }
+  };
+
+  const handleAddMember = async (onClose: () => void) => {
+    try {
+      const res = await fetch(`/api/groups/${groupId}/members`, {
+        method: "POST", body: JSON.stringify({ user_id: selectedUserId, role: memberRole })
+      });
+      if (res.ok) { await fetchMembers(); onClose(); }
+    } catch(e) { console.error(e); }
+  };
+
+  const handleAddTask = async (onClose: () => void) => {
+    try {
+      const res = await fetch(`/api/groups/${groupId}/tasks`, {
+        method: "POST", body: JSON.stringify({ title: taskTitle, description: taskDesc, due_date: taskDue })
+      });
+      if (res.ok) { await fetchTasks(); onClose(); setTaskTitle(""); setTaskDesc(""); setTaskDue(""); }
+    } catch(e) { console.error(e); }
+  };
+
+  const handleAddSchedule = async (onClose: () => void) => {
+    try {
+      const daysArray = Array.from(schedDays).map(Number);
+      const res = await fetch(`/api/groups/${groupId}/schedules`, {
+        method: "POST", body: JSON.stringify({ title: schedTitle, start_time: schedStart, end_time: schedEnd, days_of_week: daysArray })
+      });
+      if (res.ok) { await fetchSchedules(); onClose(); setSchedTitle(""); setSchedDays(new Set()); }
+    } catch(e) { console.error(e); }
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center gap-4 border-b pb-4">
+        <h2 className="text-2xl font-bold">Grupo: {groupName || <Spinner size="sm" />}</h2>
+      </div>
+
+      <div className="flex gap-2 border-b">
+        <Button variant={activeTab === "members" ? "solid" : "light"} color="primary" onPress={() => setActiveTab("members")}>Miembros</Button>
+        <Button variant={activeTab === "schedules" ? "solid" : "light"} color="primary" onPress={() => setActiveTab("schedules")}>Horarios</Button>
+        <Button variant={activeTab === "tasks" ? "solid" : "light"} color="primary" onPress={() => setActiveTab("tasks")}>Tareas</Button>
+      </div>
+
+      {activeTab === "members" && (
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-between">
+            <h3 className="text-xl">Integrantes</h3>
+            <Button color="primary" size="sm" onPress={onMemberOpen}>Añadir Integrante</Button>
+          </div>
+          <Table aria-label="Members">
+            <TableHeader>
+              <TableColumn>NOMBRE</TableColumn>
+              <TableColumn>ROL</TableColumn>
+              <TableColumn>ACCIONES</TableColumn>
+            </TableHeader>
+            <TableBody items={members} emptyContent={loading ? <Spinner/> : "No hay miembros."}>
+              {(m) => (
+                <TableRow key={m._id}>
+                  <TableCell>{m.user_id?.name || 'Unknown'}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs ${m.role === 'leader' ? 'bg-primary/20 text-primary' : 'bg-default-200'}`}>
+                      {m.role === 'leader' ? 'Líder' : 'Miembro'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Button size="sm" color="danger" variant="light" onPress={async () => {
+                      await fetch(`/api/groups/${groupId}/members?user_id=${m.user_id._id}`, { method: 'DELETE' });
+                      fetchMembers();
+                    }}>Eliminar</Button>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {activeTab === "schedules" && (
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-between">
+            <h3 className="text-xl">Horarios Asignados</h3>
+            <Button color="primary" size="sm" onPress={onScheduleOpen}>Nuevo Horario</Button>
+          </div>
+          <Table aria-label="Schedules">
+            <TableHeader>
+              <TableColumn>TÍTULO</TableColumn>
+              <TableColumn>HORARIO</TableColumn>
+              <TableColumn>DÍAS</TableColumn>
+              <TableColumn>ACCIONES</TableColumn>
+            </TableHeader>
+            <TableBody items={schedules} emptyContent={loading ? <Spinner/> : "No hay horarios."}>
+              {(s) => (
+                <TableRow key={s._id}>
+                  <TableCell>{s.title}</TableCell>
+                  <TableCell>{s.start_time} - {s.end_time}</TableCell>
+                  <TableCell>{s.days_of_week.map(d => ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"][d]).join(", ")}</TableCell>
+                  <TableCell>
+                    <Button size="sm" color="danger" variant="light" onPress={async () => {
+                      await fetch(`/api/groups/${groupId}/schedules?schedule_id=${s._id}`, { method: 'DELETE' });
+                      fetchSchedules();
+                    }}>Eliminar</Button>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {activeTab === "tasks" && (
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-between">
+            <h3 className="text-xl">Tareas del Grupo</h3>
+            <Button color="primary" size="sm" onPress={onTaskOpen}>Nueva Tarea</Button>
+          </div>
+          <Table aria-label="Tasks">
+            <TableHeader>
+              <TableColumn>TÍTULO</TableColumn>
+              <TableColumn>VENCIMIENTO</TableColumn>
+              <TableColumn>TIPO</TableColumn>
+              <TableColumn>ACCIONES</TableColumn>
+            </TableHeader>
+            <TableBody items={tasks} emptyContent={loading ? <Spinner/> : "No hay tareas."}>
+              {(t) => (
+                <TableRow key={t._id}>
+                  <TableCell>{t.title}</TableCell>
+                  <TableCell>{t.due_date ? new Date(t.due_date).toLocaleDateString() : 'N/A'}</TableCell>
+                  <TableCell>{t.is_recurring ? `Recurrente (${t.recurrence})` : 'Única'}</TableCell>
+                  <TableCell>
+                    <Button size="sm" color="danger" variant="light" onPress={async () => {
+                      await fetch(`/api/groups/${groupId}/tasks?task_id=${t._id}`, { method: 'DELETE' });
+                      fetchTasks();
+                    }}>Eliminar</Button>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* MODALS */}
+      <Modal isOpen={isMemberOpen} onOpenChange={onMemberChange}>
+         <ModalContent>
+           {(onClose) => (
+             <>
+               <ModalHeader>Añadir Integrante</ModalHeader>
+               <ModalBody>
+                 <Select label="Usuario de la Organización" selectedKeys={[selectedUserId]} onChange={e => setSelectedUserId(e.target.value)}>
+                   {orgUsers.map(ou => <SelectItem key={ou.user_id._id} textValue={ou.user_id.name}>{ou.user_id.name}</SelectItem>)}
+                 </Select>
+                 <Select label="Rol" selectedKeys={[memberRole]} onChange={e => setMemberRole(e.target.value)}>
+                   <SelectItem key="member">Miembro</SelectItem>
+                   <SelectItem key="leader">Líder</SelectItem>
+                 </Select>
+               </ModalBody>
+               <ModalFooter><Button color="primary" onPress={() => handleAddMember(onClose)}>Añadir</Button></ModalFooter>
+             </>
+           )}
+         </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isTaskOpen} onOpenChange={onTaskChange}>
+         <ModalContent>
+           {(onClose) => (
+             <>
+               <ModalHeader>Nueva Tarea</ModalHeader>
+               <ModalBody>
+                 <Input label="Título" value={taskTitle} onValueChange={setTaskTitle} />
+                 <Input label="Descripción" value={taskDesc} onValueChange={setTaskDesc} />
+                 <Input type="date" label="Fecha de Límite" value={taskDue} onValueChange={setTaskDue} placeholder=" " />
+               </ModalBody>
+               <ModalFooter><Button color="primary" onPress={() => handleAddTask(onClose)}>Crear Tarea</Button></ModalFooter>
+             </>
+           )}
+         </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isScheduleOpen} onOpenChange={onScheduleChange}>
+         <ModalContent>
+           {(onClose) => (
+             <>
+               <ModalHeader>Nuevo Horario</ModalHeader>
+               <ModalBody>
+                 <Input label="Título (Materia/Turno)" value={schedTitle} onValueChange={setSchedTitle} />
+                 <div className="flex gap-2">
+                   <Input type="time" label="Inicio" value={schedStart} onValueChange={setSchedStart} placeholder=" " />
+                   <Input type="time" label="Fin" value={schedEnd} onValueChange={setSchedEnd} placeholder=" " />
+                 </div>
+                 <Select label="Días de la semana" selectionMode="multiple" selectedKeys={schedDays} onSelectionChange={(keys) => setSchedDays(new Set(Array.from(keys as Set<string>)))}>
+                   <SelectItem key="1">Lunes</SelectItem>
+                   <SelectItem key="2">Martes</SelectItem>
+                   <SelectItem key="3">Miércoles</SelectItem>
+                   <SelectItem key="4">Jueves</SelectItem>
+                   <SelectItem key="5">Viernes</SelectItem>
+                   <SelectItem key="6">Sábado</SelectItem>
+                   <SelectItem key="0">Domingo</SelectItem>
+                 </Select>
+               </ModalBody>
+               <ModalFooter><Button color="primary" onPress={() => handleAddSchedule(onClose)}>Crear Horario</Button></ModalFooter>
+             </>
+           )}
+         </ModalContent>
+      </Modal>
+    </div>
+  );
+}

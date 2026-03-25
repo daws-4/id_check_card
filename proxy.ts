@@ -9,6 +9,9 @@ export async function proxy(request: NextRequest) {
                        request.cookies.get('__Secure-next-auth.session-token')?.value;
 
   if (!sessionToken) {
+    if (pathname.startsWith('/admin') || pathname.startsWith('/org')) {
+      return NextResponse.redirect(new URL('/admin-login', request.url));
+    }
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
@@ -19,6 +22,9 @@ export async function proxy(request: NextRequest) {
     });
 
     if (!decoded) {
+      if (pathname.startsWith('/admin') || pathname.startsWith('/org')) {
+        return NextResponse.redirect(new URL('/admin-login', request.url));
+      }
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
@@ -55,6 +61,9 @@ export async function proxy(request: NextRequest) {
 
   } catch (error) {
     console.error('Error decoding token', error);
+    if (pathname.startsWith('/admin') || pathname.startsWith('/org')) {
+      return NextResponse.redirect(new URL('/admin-login', request.url));
+    }
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

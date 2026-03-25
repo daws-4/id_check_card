@@ -1,48 +1,93 @@
+"use client";
+
 import { ReactNode } from "react";
-import { Link } from "@heroui/link";
-import { ThemeSwitch } from "@/components/theme-switch";
+import Link from "next/link";
+import { useParams, usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import LogoutButton from "@/components/LogoutButton";
+import { Nfc, LayoutDashboard, Building2, Users, Router, UserCog, Moon } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex h-screen bg-background text-foreground">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-divider flex flex-col bg-[var(--color-carbon-black)] text-[var(--color-lavender-mist)]">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-[var(--color-maya-blue)]">Secure Pass</h2>
-          <p className="text-small opacity-70">Panel de Super Admin</p>
-        </div>
-        
-        <nav className="flex-1 px-4 flex flex-col gap-2">
-          <Link href="/admin" className="w-full p-2 rounded-md hover:bg-white/10 transition-colors text-[var(--color-lavender-mist)]">
-            Tablero
-          </Link>
-          <Link href="/admin/organizations" className="w-full p-2 rounded-md hover:bg-white/10 transition-colors text-[var(--color-lavender-mist)]">
-            Organizaciones
-          </Link>
-          <Link href="/admin/readers" className="w-full p-2 rounded-md hover:bg-white/10 transition-colors text-[var(--color-lavender-mist)]">
-            Lectores y Dispositivos
-          </Link>
-          <Link href="/admin/users" className="w-full p-2 rounded-md hover:bg-white/10 transition-colors text-[var(--color-lavender-mist)]">
-            Usuarios
-          </Link>
-        </nav>
+  const pathname = usePathname();
 
-        <div className="p-4 border-t border-white/10 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Tema</span>
-            <ThemeSwitch />
+  const navItems = [
+    { href: "/admin", label: "Tablero", icon: LayoutDashboard },
+    { href: "/admin/organizations", label: "Organizaciones", icon: Building2 },
+    { href: "/admin/readers", label: "Lectores y Dispositivos", icon: Router },
+    { href: "/admin/admins", label: "Administradores", icon: UserCog },
+    { href: "/admin/users", label: "Usuarios", icon: Users },
+  ];
+
+  return (
+    <div className="bg-[var(--color-lavender-mist)] flex h-screen overflow-hidden text-[var(--color-carbon-black)]">
+      {/* Barra Lateral (Sidebar) */}
+      <aside className="w-64 bg-[var(--color-carbon-black)] flex flex-col justify-between shadow-xl z-20">
+        <div>
+          {/* Encabezado del Logo */}
+          <div className="p-6">
+            <h1 className="text-[var(--color-tropical-teal)] text-2xl font-bold tracking-wide flex items-center gap-2">
+              <Nfc className="w-6 h-6" />
+              Secure Pass
+            </h1>
+            <p className="text-[var(--color-lavender-mist)] text-xs opacity-60 mt-1 uppercase tracking-wider font-semibold">
+              Panel de Super Admin
+            </p>
           </div>
+
+          {/* Navegación */}
+          <nav className="px-4 space-y-2 mt-4 relative">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              const Icon = item.icon;
+              
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-300 ${
+                    isActive
+                      ? "text-[var(--color-tropical-teal)]"
+                      : "text-[var(--color-lavender-mist)] hover:bg-white/5 hover:text-[var(--color-maya-blue)]"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="admin-sidebar-active-indicator"
+                      className="absolute inset-0 bg-white/10 border-l-4 border-[var(--color-tropical-teal)] rounded-xl"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-3 w-full">
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    <span className="font-medium">{item.label}</span>
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Pie de la barra lateral (Tema y Usuario) */}
+        <div className="p-4 border-t border-white/10 space-y-4">
           <LogoutButton />
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden bg-background">
-        <header className="h-16 border-b border-divider flex items-center px-8 bg-content1/50 backdrop-blur-md">
-          <h1 className="text-xl font-semibold text-[var(--color-tropical-teal)]">Área de Admin</h1>
+      {/* Contenido Principal */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[var(--color-lavender-mist)]">
+        {/* Barra superior (Topbar) */}
+        <header className="bg-white px-8 py-5 shadow-sm border-b border-gray-100 z-10 flex items-center justify-between">
+          <h2 className="text-[var(--color-tropical-teal)] text-xl font-bold flex items-center gap-2">
+            Área de Admin
+          </h2>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-500">Bienvenido de nuevo</span>
+          </div>
         </header>
-        <div className="flex-1 overflow-auto p-8">
+
+        {/* Área de contenido con scroll */}
+        <div className="flex-1 overflow-y-auto p-8">
           {children}
         </div>
       </main>

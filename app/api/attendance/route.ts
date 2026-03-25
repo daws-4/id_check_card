@@ -4,6 +4,13 @@ import { Reader } from '@/models/Reader';
 import { User } from '@/models/User';
 import { Membership } from '@/models/Membership';
 import { AttendanceLog } from '@/models/AttendanceLog';
+import { GroupMembership } from '@/models/GroupMembership';
+import { Schedule } from '@/models/Schedule';
+
+function timeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
 
 export async function GET(req: Request) {
   try {
@@ -17,7 +24,7 @@ export async function GET(req: Request) {
       .populate('user_id', 'name email nfc_card_id')
       .populate('reader_id', 'location esp32_id')
       .sort({ timestamp: -1 })
-      .limit(100); // Limit to last 100 for now to avoid huge payloads
+      .limit(100);
 
     return NextResponse.json(logs);
   } catch (error: any) {
@@ -78,7 +85,6 @@ export async function POST(req: Request) {
     }
 
     // 4. Determine Entry or Exit
-    // Get beginning of the day (local or UTC based on server, using UTC for simplicity or simple relative time)
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
@@ -93,13 +99,82 @@ export async function POST(req: Request) {
       type = 'salida';
     }
 
-    // 5. Create AttendanceLog
-    const newLog = await AttendanceLog.create({
+    // 5. Calculate compliance status based on schedules
+    let status: 'on_time' | 'late' | 'early_leave' | 'overtime' | undefined;
+    let time_variance_minutes: number | undefined;
+
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const todayWeekday = now.getDay(); // 0 = Sun, 6 = Sat
+
+    // Find user's groups for this org
+    const userGroupMemberships = await GroupMembership.find({ user_id });
+    const userGroupIds = userGroupMemberships.map((gm: any) => gm.group_id);
+
+    // Find active schedules for today
+    const todaySchedules = await Schedule.find({
+      group_id: { $in: userGroupIds },
+      days_of_week: todayWeekday,
+    });
+
+    if (todaySchedules.length > 0) {
+      if (type === 'entrada') {
+        // Find the closest schedule start_time
+        let closestSchedule = todaySchedules[0];
+        let closestDiff = Math.abs(nowMinutes - timeToMinutes(closestSchedule.start_time));
+
+        for (const s of todaySchedules) {
+          const diff = Math.abs(nowMinutes - timeToMinutes(s.start_time));
+          if (diff < closestDiff) {
+            closestDiff = diff;
+            closestSchedule = s;
+          }
+        }
+
+        const scheduleStartMin = timeToMinutes(closestSchedule.start_time);
+        const variance = nowMinutes - scheduleStartMin; // positive = late
+
+        time_variance_minutes = variance;
+        status = variance <= 5 ? 'on_time' : 'late'; // 5 min grace period
+      } else {
+        // salida: find the closest schedule end_time
+        let closestSchedule = todaySchedules[0];
+        let closestDiff = Math.abs(nowMinutes - timeToMinutes(closestSchedule.end_time));
+
+        for (const s of todaySchedules) {
+          const diff = Math.abs(nowMinutes - timeToMinutes(s.end_time));
+          if (diff < closestDiff) {
+            closestDiff = diff;
+            closestSchedule = s;
+          }
+        }
+
+        const scheduleEndMin = timeToMinutes(closestSchedule.end_time);
+        const variance = nowMinutes - scheduleEndMin; // positive = overtime
+
+        time_variance_minutes = variance;
+        if (variance > 5) {
+          status = 'overtime';
+        } else if (variance < -5) {
+          status = 'early_leave';
+        } else {
+          status = 'on_time';
+        }
+      }
+    }
+
+    // 6. Create AttendanceLog
+    const logData: any = {
       user_id,
       organization_id,
       reader_id: reader._id,
-      type
-    });
+      type,
+    };
+
+    if (status) logData.status = status;
+    if (time_variance_minutes !== undefined) logData.time_variance_minutes = time_variance_minutes;
+
+    const newLog = await AttendanceLog.create(logData);
 
     return NextResponse.json(
       { 

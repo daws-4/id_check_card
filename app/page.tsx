@@ -18,12 +18,17 @@ export default async function Home() {
     redirect(`/org/${orgs[0]}`);
   }
 
-  // Regular user or no orgs
+  // Regular user — redirect to user panel
+  if (role === 'user') {
+    redirect('/user');
+  }
+
+  // Fallback
   return (
     <div className="flex h-screen items-center justify-center bg-background">
       <div className="text-center">
         <h1 className="text-2xl font-bold mb-4">Bienvenido</h1>
-        <p className="text-default-500">No tienes acceso administrativo.</p>
+        <p className="text-default-500">Redirigiendo...</p>
       </div>
     </div>
   );

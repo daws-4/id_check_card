@@ -13,6 +13,16 @@ Secure-Pass-NFC es una plataforma centralizada integral (Web, Móvil y Hardware)
 
 ---
 
+## 🌟 Últimas Novedades y Mejoras Arqutitectónicas
+
+- **Evolución del Esquema de Usuarios:** Transición exitosa alejándose de identificadores `nfc_card_id` físicos obsoletos (reemplazado por lógica booleana `has_nfc_card`). Perfil enriquecido dinámicamente con distinción entre `nombre` y `apellido`, `fecha de nacimiento`, `tipo de sangre` y `document_id` (cédula).
+- **Control de Roles y Login Estricto:** Introducción de índices compuestos en MongoDB (`email` + `role`). Un mismo correo puede coexistir sin conflictos asumiendo un rol de `usuario` y `administrador` en paralelo. NextAuth evalúa inteligentemente qué portal se está utilizando (`/login` vs `/admin-login`) y redirige sutilmente sin mezclar las cuentas.
+- **Auto-Completado Avanzado (UX/UI):** Implementación de selectores inteligentes de usuarios al agregar miembros a organizaciones. Incluye buscador instantáneo por cédula, nombre y correo, ocultando a los perfiles ya emparejados.
+- **Formularios Dinámicos por Rol:** Los campos como el tipo de sangre y los apellidos solo se exigen al registrar cuentas de usuarios estándar, limpiando la vista para registro de perfiles administrativos globales.
+- **Accesibilidad e Interfaz:** Refinamiento de cursores en tablas, re-estructuración idiomática al español en "Reportes de Asistencia" (Attendance Logs) y reparaciones anti-tree shaking del compilador Next.js.
+
+---
+
 ## 🎯 Arquitectura Centralizada
 
 El núcleo de la aplicación es su **centralización**. Todas las organizaciones bajo este ecosistema operan sobre el mismo servidor y base de datos, lo que elimina la redundancia de registros. 
@@ -26,7 +36,7 @@ Si un usuario trabaja en una empresa en la mañana y asiste a otra organización
 
 ### Fase 1: Base de Datos Centralizada (MongoDB)
 Diseño de los modelos de datos usando referencias:
-- **Users**: Datos personales, credenciales de acceso y el ID único grabado en la tarjeta NFC.
+- **Users**: Datos personales mejorados (nombre, apellido, fecha_nacimiento, blood_type, document_id único), credenciales de acceso, rol global, y el indicador booleano `has_nfc_card`. Los emails son únicos exclusivamente por rol.
 - **Organizations**: Detalles de la entidad (empresa, colegio, etc.).
 - **Memberships**: Colección que vincula a un *User* con una *Organization* determinando su rol.
 - **Readers / Devices**: Colección para registrar los lectores físicos, vinculando el `esp32_id` único con una `organization_id` y su estado.
@@ -63,8 +73,8 @@ Aplicación móvil con funciones duales y uso avanzado de hardware:
 A continuación, se desglosan las fases en tareas accionables para facilitar el desarrollo:
 
 ### 1. Base de Datos (MongoDB)
-- [ ] Configurar el cluster de MongoDB (ej. MongoDB Atlas) y obtener la URI de conexión.
-- [x] Crear el esquema `User` (nombre, email, password_hash, `nfc_card_id` único).
+- [x] Configurar el cluster de MongoDB (ej. MongoDB Atlas) y obtener la URI de conexión.
+- [x] Crear el esquema `User` (ampliado con schema dinámico por rol, `document_id` con sparse index, índices cruzados email+role).
 - [x] Crear el esquema `Organization` (nombre, tipo, configuraciones básicas).
 - [x] Crear el esquema `Membership` (user_id, organization_id, rol: admin/user).
 - [x] Crear el esquema `Reader` o `Device` (`esp32_id` único, organization_id referenciada, ubicación, estado).
@@ -75,16 +85,17 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [x] Crear endpoint `POST /api/attendance` para recibir datos del ESP32.
 - [x] Lógica del endpoint `attendance`: Validar `esp32_id` para obtener la organización, buscar al usuario por `card_id`, verificar membresía y guardar el log.
 - [x] Crear endpoints CRUD para la gestión de Usuarios, Organizaciones y Lectores.
-- [x] Configurar la autenticación (ej. NextAuth.js o JWT) para proteger las rutas de administración.
+- [x] Configurar la autenticación (ej. NextAuth.js) para proteger rutas y aislar inteligentemente los portales `/login` y `/admin-login` con soporte paralelo de correos electrónicos.
+- [x] Optimizar la depuración de Mongoose para soportar compilación severa (tree-shaking) al enriquecer esquemas.
 
 ### 3. Paneles Administrativos Web (Next.js)
 - [x] Desarrollar el **Panel Súper Administrador**: vistas para crear/editar organizaciones y dar de alta/reasignar IDs de lectores (`esp32_id`).
 - [x] Desarrollar el **Panel de Organización**: dashboard principal con métricas.
-- [x] Panel de Org: Vista para gestionar miembros (empleados/estudiantes).
-- [x] Panel de Org: Vista de reportes de asistencia en tiempo real.
+- [x] Panel de Org: Vista para gestionar miembros, incluyendo un Buscador Autocompletado inteligente con validación por ID y Cédula en vivo.
+- [x] Panel de Org: Vista de reportes de asistencia en tiempo real, traducida e internacionalizada (ES).
 
 ### 4. Automatizaciones (n8n)
-- [ ] Configurar una instancia de n8n (local o cloud).
+- [x] Configurar una instancia de n8n (local o cloud).
 - [ ] Modificar el endpoint `POST /api/attendance` de Next.js para enviar un Webhook a n8n después de registrar un log válido.
 - [ ] Crear un workflow en n8n que reciba el Webhook y envíe una alerta (ej. un correo de prueba o mensaje de Telegram/WhatsApp) informando la entrada/salida.
 
@@ -117,13 +128,13 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [ ] Crear, editar y eliminar todas las organizaciones del sistema.
 
 ### PANEL DE ORGANIZACIÓN
-- [ ] Crear nuevos usuarios o añadir usuarios ya existentes en el sistema global a la organización.
-- [ ] Crear y gestionar distintos grupos de usuarios (catalogados como grupos de estudio o grupos de trabajo).
-- [ ] Asignar usuarios normales como líderes de un grupo.
-- [ ] Permitir a los líderes de un grupo editar, añadir o eliminar usuarios, así como asignarles tareas con fecha límite o repetitivas dentro del grupo asignado.
-- [ ] Asignar horarios a los grupos (con títulos de materias, clases o actividades).
-- [ ] Asignar tareas a los grupos, ya sean con fecha límite o repetitivas (una vez a la semana, al mes o al año).
-- [ ] Registrar la hora de paso por algún lector y asociar lectores a la organización en general o dedicarlos a un grupo en específico.
+- [x] Crear nuevos usuarios o añadir usuarios de forma inteligente usando un buscador (Autocompletado) a la organización, incluyendo adaptabilidad dinámica de formularios según el tipo de persona a afiliar.
+- [x] Crear y gestionar distintos grupos de usuarios (catalogados como grupos de estudio o grupos de trabajo).
+- [x] Asignar usuarios normales como líderes de un grupo.
+- [x] Permitir a los líderes de un grupo editar, añadir o eliminar usuarios, así como asignarles tareas con fecha límite o repetitivas dentro del grupo asignado.
+- [x] Asignar horarios a los grupos (con títulos de materias, clases o actividades).
+- [x] Asignar tareas a los grupos, ya sean con fecha límite o repetitivas (una vez a la semana, al mes o al año).
+- [x] Registrar la hora de paso por algún lector y asociar lectores a la organización en general o dedicarlos a un grupo en específico.
 > **Nota para Web:** Para la versión web se deben añadir a futuro aún más opciones y métricas de análisis que las indicadas en esta versión esencial.
 
 ### PANEL DE USUARIO (Normal / Líder de Grupo)

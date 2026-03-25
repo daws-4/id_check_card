@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@heroui/table";
-import { Button } from "@heroui/button";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/modal";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import { Spinner } from "@heroui/spinner";
+import { Button } from "@heroui/button";
+import { Plus, MoreVertical } from "lucide-react";
 
 interface Organization {
   _id: string;
@@ -14,12 +15,29 @@ interface Organization {
   type: string;
 }
 
+const orgTypesTranslations: Record<string, string> = {
+  company: "Empresa",
+  school: "Escuela",
+  university: "Universidad",
+  hospital: "Hospital / Clínica",
+  factory: "Fábrica / Industria",
+  coworking: "Espacio de Coworking",
+  residential: "Conjunto Residencial",
+  club: "Club Deportivo",
+  event: "Evento / Conferencia",
+  government: "Entidad Institucional / Gobs",
+  ngo: "ONG / Fundación",
+  library: "Biblioteca",
+  gym: "Gimnasio",
+  other: "Otro"
+};
+
 export default function OrganizationsPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   
-  // Form State
+  const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
   const [name, setName] = useState("");
   const [type, setType] = useState("company");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,11 +61,36 @@ export default function OrganizationsPage() {
     }
   };
 
-  const handleCreate = async (onClose: () => void) => {
+  const handleOpenModal = (org?: Organization) => {
+    if (org) {
+      setSelectedOrg(org);
+      setName(org.name);
+      setType(org.type);
+    } else {
+      setSelectedOrg(null);
+      setName("");
+      setType("company");
+    }
+    onOpen();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Seguro que deseas eliminar esta organización?")) return;
+    try {
+      const res = await fetch(`/api/organizations/${id}`, { method: "DELETE" });
+      if (res.ok) await fetchOrganizations();
+    } catch (error) {
+      console.error("Failed to delete organization", error);
+    }
+  };
+
+  const handleSubmit = async (onClose: () => void) => {
     try {
       setIsSubmitting(true);
-      const res = await fetch("/api/organizations", {
-        method: "POST",
+      const url = selectedOrg ? `/api/organizations/${selectedOrg._id}` : "/api/organizations";
+      const method = selectedOrg ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, type }),
       });
@@ -55,52 +98,103 @@ export default function OrganizationsPage() {
       if (res.ok) {
         await fetchOrganizations();
         onClose();
-        setName("");
-        setType("company");
       } else {
-        console.error("Failed to create organization");
+        console.error("Failed to save organization");
       }
     } catch (error) {
-      console.error("Error creating organization", error);
+      console.error("Error saving organization", error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const getInitials = (orgName: string) => {
+    return orgName.substring(0, 2).toUpperCase();
+  };
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Organizaciones</h2>
-        <Button color="primary" onPress={onOpen}>
+    <section>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h3 className="text-[var(--color-carbon-black)] text-2xl font-bold">Organizaciones</h3>
+        <button 
+          onClick={() => handleOpenModal()}
+          className="bg-[var(--color-maya-blue)] hover:bg-[var(--color-tropical-teal)] text-white font-medium px-5 py-2.5 rounded-xl shadow-md shadow-[var(--color-maya-blue)]/30 transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer"
+        >
+          <Plus className="w-4 h-4" />
           Agregar Organización
-        </Button>
+        </button>
       </div>
 
-      <Table aria-label="Organizations table">
-        <TableHeader>
-          <TableColumn>NOMBRE</TableColumn>
-          <TableColumn>TIPO</TableColumn>
-          <TableColumn>ID</TableColumn>
-        </TableHeader>
-        <TableBody
-          items={organizations}
-          emptyContent={loading ? <Spinner /> : "No se encontraron organizaciones."}
-        >
-          {(org) => (
-            <TableRow key={org._id}>
-              <TableCell>{org.name}</TableCell>
-              <TableCell className="capitalize">{org.type}</TableCell>
-              <TableCell className="text-default-500 font-mono text-xs">{org._id}</TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+      {/* Tabla de Organizaciones */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-[var(--color-lavender-mist)]/50 border-b border-gray-100">
+                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre</th>
+                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Tipo</th>
+                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center">
+                    <Spinner />
+                  </td>
+                </tr>
+              ) : organizations.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-gray-500">
+                    No se encontraron organizaciones.
+                  </td>
+                </tr>
+              ) : (
+                organizations.map((org, idx) => (
+                  <tr key={org._id} className="hover:bg-[var(--color-lavender-mist)]/30 transition-colors group">
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${idx % 2 === 0 ? 'bg-[var(--color-tropical-teal)]/10 text-[var(--color-tropical-teal)]' : 'bg-[var(--color-electric-sapphire)]/10 text-[var(--color-electric-sapphire)]'}`}>
+                          {getInitials(org.name)}
+                        </div>
+                        <span className="font-semibold text-[var(--color-carbon-black)]">{org.name}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className={`px-3 py-1 text-xs font-medium rounded-full border ${idx % 2 === 0 ? 'bg-[var(--color-maya-blue)]/10 text-[var(--color-maya-blue)] border-[var(--color-maya-blue)]/20' : 'bg-[var(--color-electric-sapphire)]/10 text-[var(--color-electric-sapphire)] border-[var(--color-electric-sapphire)]/20'}`}>
+                        {orgTypesTranslations[org.type] || org.type}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-500 font-mono">
+                      {org._id}
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <Dropdown>
+                        <DropdownTrigger>
+                          <button className="p-2 text-gray-400 hover:text-[var(--color-tropical-teal)] transition-colors rounded-lg hover:bg-[var(--color-tropical-teal)]/10 cursor-pointer">
+                            <MoreVertical className="w-5 h-5" />
+                          </button>
+                        </DropdownTrigger>
+                        <DropdownMenu aria-label="Acciones">
+                          <DropdownItem key="edit" onPress={() => handleOpenModal(org)}>Editar</DropdownItem>
+                          <DropdownItem key="delete" className="text-danger" color="danger" onPress={() => handleDelete(org._id)}>Eliminar</DropdownItem>
+                        </DropdownMenu>
+                      </Dropdown>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">Crear Organización</ModalHeader>
+              <ModalHeader className="flex flex-col gap-1">{selectedOrg ? "Editar Organización" : "Crear Organización"}</ModalHeader>
               <ModalBody>
                 <Input 
                   autoFocus 
@@ -118,6 +212,16 @@ export default function OrganizationsPage() {
                 >
                   <SelectItem key="company">Empresa</SelectItem>
                   <SelectItem key="school">Escuela</SelectItem>
+                  <SelectItem key="university">Universidad</SelectItem>
+                  <SelectItem key="hospital">Hospital / Clínica</SelectItem>
+                  <SelectItem key="factory">Fábrica / Industria</SelectItem>
+                  <SelectItem key="coworking">Espacio de Coworking</SelectItem>
+                  <SelectItem key="residential">Conjunto Residencial</SelectItem>
+                  <SelectItem key="club">Club Deportivo</SelectItem>
+                  <SelectItem key="event">Evento / Conferencia</SelectItem>
+                  <SelectItem key="government">Entidad Institucional / Gobs</SelectItem>
+                  <SelectItem key="ngo">ONG / Fundación</SelectItem>
+                  <SelectItem key="library">Biblioteca</SelectItem>
                   <SelectItem key="gym">Gimnasio</SelectItem>
                   <SelectItem key="other">Otro</SelectItem>
                 </Select>
@@ -126,14 +230,14 @@ export default function OrganizationsPage() {
                 <Button color="danger" variant="flat" onPress={onClose}>
                   Cancelar
                 </Button>
-                <Button color="primary" onPress={() => handleCreate(onClose)} isLoading={isSubmitting}>
-                  Crear
+                <Button color="primary" onPress={() => handleSubmit(onClose)} isLoading={isSubmitting}>
+                  {selectedOrg ? "Guardar Cambios" : "Crear"}
                 </Button>
               </ModalFooter>
             </>
           )}
         </ModalContent>
       </Modal>
-    </div>
+    </section>
   );
 }

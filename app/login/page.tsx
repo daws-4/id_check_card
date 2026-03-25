@@ -24,10 +24,11 @@ export default function LoginPage() {
       redirect: false,
       email,
       password,
+      portalType: "user",
     });
 
     if (res?.error) {
-      setError("Correo o contraseña inválidos");
+      setError(res.error === "CredentialsSignin" ? "Correo o contraseña inválidos" : res.error);
       setIsLoading(false);
     } else {
       router.push("/");
@@ -42,7 +43,7 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-[var(--color-maya-blue)] to-[var(--color-tropical-teal)] bg-clip-text text-transparent">
             Secure Pass
           </h1>
-          <p className="text-sm text-[var(--color-lavender-mist)]/70 mt-2">Inicia sesión en tu cuenta</p>
+          <p className="text-sm text-[var(--color-lavender-mist)]/70 mt-2">Portal de Usuarios</p>
         </CardHeader>
         <Divider className="bg-divider/5" />
         <CardBody className="p-8">
@@ -91,6 +92,9 @@ export default function LoginPage() {
             >
               Iniciar Sesión
             </Button>
+            <div className="text-center text-sm text-[var(--color-lavender-mist)]/70 mt-4">
+              ¿Eres administrador? <a href="/admin-login" className="text-[var(--color-maya-blue)] hover:underline">Ingresa aquí</a>
+            </div>
           </form>
         </CardBody>
       </Card>

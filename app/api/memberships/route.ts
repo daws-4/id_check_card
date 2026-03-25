@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/config/db';
 import { Membership } from '@/models/Membership';
+import { User } from '@/models/User';
+import { Organization } from '@/models/Organization';
 
 export async function GET(req: Request) {
   try {
@@ -8,14 +10,19 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const organization_id = url.searchParams.get("organization_id");
     
+    // Prevent Webpack tree-shaking from dropping Mongoose models
+    const _orgModel = Organization;
+    const _userModel = User;
+
     const filter = organization_id ? { organization_id } : {};
     
     const memberships = await Membership.find(filter)
-      .populate('user_id', 'name email nfc_card_id')
+      .populate('user_id', '-password_hash')
       .populate('organization_id', 'name type');
     return NextResponse.json(memberships);
   } catch (error: any) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("GET MEMBERSHIPS ERROR:", error);
+    return NextResponse.json({ error: 'Internal Server Error', details: error.message, stack: error.stack }, { status: 500 });
   }
 }
 

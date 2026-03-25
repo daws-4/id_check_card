@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Pass - Dashboard</title>
+    <!-- Tailwind CSS a través de CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuración de colores personalizados en Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'tropical-teal': '#16bac5',
+                        'maya-blue': '#5fbff9',
+                        'lavender-mist': '#efe9f4',
+                        'carbon-black': '#171d1c',
+                        'electric-sapphire': '#5863f8',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Íconos Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Estilos base adicionales si son necesarios */
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-lavender-mist flex h-screen overflow-hidden text-carbon-black">
+
+    <!-- Barra Lateral (Sidebar) -->
+    <aside class="w-64 bg-carbon-black flex flex-col justify-between shadow-xl z-20">
+        <div>
+            <!-- Encabezado del Logo -->
+            <div class="p-6">
+                <h1 class="text-tropical-teal text-2xl font-bold tracking-wide flex items-center gap-2">
+                    <i data-lucide="nfc" class="w-6 h-6"></i>
+                    Secure Pass
+                </h1>
+                <p class="text-lavender-mist text-xs opacity-60 mt-1 uppercase tracking-wider font-semibold">Panel de Super Admin</p>
+            </div>
+
+            <!-- Navegación -->
+            <nav class="px-4 space-y-2 mt-4">
+                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 text-tropical-teal border-l-4 border-tropical-teal transition-all">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span class="font-medium">Tablero</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-lavender-mist hover:bg-white/5 hover:text-maya-blue transition-all">
+                    <i data-lucide="building-2" class="w-5 h-5"></i>
+                    <span class="font-medium">Organizaciones</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-lavender-mist hover:bg-white/5 hover:text-maya-blue transition-all">
+                    <i data-lucide="nfc" class="w-5 h-5"></i>
+                    <span class="font-medium">Lectores y Dispositivos</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-lavender-mist hover:bg-white/5 hover:text-maya-blue transition-all">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span class="font-medium">Usuarios</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- Pie de la barra lateral (Tema y Usuario) -->
+        <div class="p-4 border-t border-white/10 space-y-4">
+            <div class="flex items-center justify-between px-4 text-lavender-mist">
+                <span class="text-sm font-medium">Tema Oscuro</span>
+                <button class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+                    <i data-lucide="moon" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all">
+                <div class="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center font-bold text-sm">
+                    N
+                </div>
+                <span class="font-medium text-sm">Cerrar Sesión</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Contenido Principal -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        <!-- Barra superior (Topbar) -->
+        <header class="bg-white px-8 py-5 shadow-sm border-b border-gray-100 z-10 flex items-center justify-between">
+            <h2 class="text-tropical-teal text-xl font-bold flex items-center gap-2">
+                Área de Admin
+            </h2>
+            <div class="flex items-center gap-4">
+                <span class="text-sm text-gray-500">Bienvenido de nuevo</span>
+            </div>
+        </header>
+
+        <!-- Área de contenido con scroll -->
+        <div class="flex-1 overflow-y-auto p-8">
+            
+            <!-- Sección: Resumen de la Plataforma -->
+            <section class="mb-10">
+                <h3 class="text-carbon-black text-2xl font-bold mb-6">Resumen de la Plataforma</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Tarjeta 1 -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-tropical-teal/10 rounded-full blur-2xl"></div>
+                        <div class="flex items-center justify-between mb-4">
+                            <p class="text-gray-500 font-medium text-sm">Total Organizaciones</p>
+                            <div class="p-2 bg-electric-sapphire/10 rounded-lg text-electric-sapphire">
+                                <i data-lucide="building-2" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <p class="text-4xl font-bold text-carbon-black">12</p>
+                    </div>
+
+                    <!-- Tarjeta 2 -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-maya-blue/10 rounded-full blur-2xl"></div>
+                        <div class="flex items-center justify-between mb-4">
+                            <p class="text-gray-500 font-medium text-sm">Lectores Activos</p>
+                            <div class="p-2 bg-maya-blue/10 rounded-lg text-maya-blue">
+                                <i data-lucide="router" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <p class="text-4xl font-bold text-carbon-black">48</p>
+                    </div>
+
+                    <!-- Tarjeta 3 -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-electric-sapphire/10 rounded-full blur-2xl"></div>
+                        <div class="flex items-center justify-between mb-4">
+                            <p class="text-gray-500 font-medium text-sm">Total Usuarios</p>
+                            <div class="p-2 bg-tropical-teal/10 rounded-lg text-tropical-teal">
+                                <i data-lucide="users" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <p class="text-4xl font-bold text-carbon-black">1,204</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sección: Organizaciones -->
+            <section>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    <h3 class="text-carbon-black text-2xl font-bold">Organizaciones</h3>
+                    <button class="bg-maya-blue hover:bg-tropical-teal text-white font-medium px-5 py-2.5 rounded-xl shadow-md shadow-maya-blue/30 transition-all flex items-center gap-2 transform hover:-translate-y-0.5">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        Agregar Organización
+                    </button>
+                </div>
+
+                <!-- Tabla de Organizaciones -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-lavender-mist/50 border-b border-gray-100">
+                                    <th class="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre</th>
+                                    <th class="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Tipo</th>
+                                    <th class="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">ID</th>
+                                    <th class="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <!-- Fila 1 -->
+                                <tr class="hover:bg-lavender-mist/30 transition-colors group">
+                                    <td class="py-4 px-6">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-lg bg-tropical-teal/10 flex items-center justify-center text-tropical-teal font-bold">
+                                                CM
+                                            </div>
+                                            <span class="font-semibold text-carbon-black">Colegio María Auxiliadora</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-4 px-6">
+                                        <span class="px-3 py-1 text-xs font-medium rounded-full bg-maya-blue/10 text-maya-blue border border-maya-blue/20">
+                                            Escuela
+                                        </span>
+                                    </td>
+                                    <td class="py-4 px-6 text-sm text-gray-500 font-mono">
+                                        69c0ade48ad95bd8228a688d
+                                    </td>
+                                    <td class="py-4 px-6 text-right">
+                                        <button class="p-2 text-gray-400 hover:text-tropical-teal transition-colors rounded-lg hover:bg-tropical-teal/10">
+                                            <i data-lucide="more-vertical" class="w-5 h-5"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Fila 2 (Ejemplo adicional) -->
+                                <tr class="hover:bg-lavender-mist/30 transition-colors group">
+                                    <td class="py-4 px-6">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-lg bg-electric-sapphire/10 flex items-center justify-center text-electric-sapphire font-bold">
+                                                TE
+                                            </div>
+                                            <span class="font-semibold text-carbon-black">TechCorp Empresarial</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-4 px-6">
+                                        <span class="px-3 py-1 text-xs font-medium rounded-full bg-electric-sapphire/10 text-electric-sapphire border border-electric-sapphire/20">
+                                            Empresa
+                                        </span>
+                                    </td>
+                                    <td class="py-4 px-6 text-sm text-gray-500 font-mono">
+                                        81f2bce39cd84ae7119b477f
+                                    </td>
+                                    <td class="py-4 px-6 text-right">
+                                        <button class="p-2 text-gray-400 hover:text-tropical-teal transition-colors rounded-lg hover:bg-tropical-teal/10">
+                                            <i data-lucide="more-vertical" class="w-5 h-5"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+            
+        </div>
+    </main>
+
+    <!-- Inicializar Íconos -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

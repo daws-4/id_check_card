@@ -11,7 +11,8 @@ export const authOptions: NextAuthOptions = {
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
+        portalType: { label: "Portal", type: "text" }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -20,14 +21,28 @@ export const authOptions: NextAuthOptions = {
 
         await connectDB();
 
-        const user = await User.findOne({ email: credentials.email });
+        let roleFilter = {};
+        if (credentials.portalType === 'user') {
+          roleFilter = { role: 'user' };
+        } else if (credentials.portalType === 'admin') {
+          roleFilter = { role: { $in: ['org_admin', 'superadmin'] } };
+        }
+
+        const user = await User.findOne({ email: credentials.email, ...roleFilter });
+        
         if (!user) {
-          throw new Error('Invalid email or password');
+          // Si no encuentra pero el email existe en otro rol, podemos avisar
+          const wrongRoleUser = await User.findOne({ email: credentials.email });
+          if (wrongRoleUser) {
+             if (credentials.portalType === 'user') throw new Error('Por favor, inicia sesión en el portal de administración.');
+             if (credentials.portalType === 'admin') throw new Error('No tienes permisos de administrador. Ve al portal de usuarios.');
+          }
+          throw new Error('Credenciales incorrectas');
         }
 
         const isMatch = await bcrypt.compare(credentials.password, user.password_hash);
         if (!isMatch) {
-          throw new Error('Invalid email or password');
+          throw new Error('Credenciales incorrectas');
         }
 
         // Check if user has admin role in any organization
@@ -67,7 +82,8 @@ export const authOptions: NextAuthOptions = {
     }
   },
   session: {
-    strategy: "jwt"
+    strategy: "jwt",
+    maxAge: 7 * 24 * 60 * 60, // 7 days
   },
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
