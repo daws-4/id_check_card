@@ -33,6 +33,9 @@ interface DashboardData {
     dailyHours: { day: string; minutes: number }[];
     weeklyLateCount: number;
   };
+  error?: string;
+  details?: string;
+  stack?: string;
 }
 
 export default function UserDashboard() {
@@ -76,10 +79,16 @@ export default function UserDashboard() {
     );
   }
 
-  if (!data) {
+  if (!data || data.error || !data.metrics) {
     return (
       <div className="text-center text-gray-500 mt-20">
-        Error al cargar datos
+        Error al cargar datos: {data?.error || "Desconocido"}
+        <br />
+        <span className="text-xs text-red-400 mt-2 block w-full max-w-2xl text-left bg-gray-100 p-2 mx-auto overflow-auto">
+          {data?.details || ""} 
+          <br/>
+          {data?.stack || ""}
+        </span>
       </div>
     );
   }

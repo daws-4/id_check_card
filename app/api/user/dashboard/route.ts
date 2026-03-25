@@ -230,8 +230,8 @@ export async function GET() {
       recentLogs,
       metrics,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("User dashboard error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error", details: error.message, stack: error.stack }, { status: 500 });
   }
 }

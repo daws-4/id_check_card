@@ -33,9 +33,11 @@ export default function MetricsPage() {
     );
   }
 
-  if (!data) {
+  if (!data || data.error || !data.metrics) {
     return (
-      <div className="text-center text-gray-500 mt-20">Error al cargar datos</div>
+      <div className="text-center text-gray-500 mt-20">
+        Error al cargar las métricas.
+      </div>
     );
   }
 
