@@ -10,6 +10,7 @@ import { TaskCompletion } from "@/models/TaskCompletion";
 import { AttendanceLog } from "@/models/AttendanceLog";
 import { Group } from "@/models/Group";
 import { Organization } from "@/models/Organization";
+import { User } from "@/models/User";
 
 function getWeekday(date: Date): number {
   return date.getDay(); // 0 = Sun, 6 = Sat
@@ -31,6 +32,9 @@ export async function GET() {
 
     const userId = (session.user as any).id;
     await connectDB();
+
+    const userDoc = await User.findById(userId);
+    const userType = userDoc?.user_type || 'worker';
 
     // 1. Get memberships and organizations
     const memberships = await Membership.find({ user_id: userId }).populate("organization_id");
@@ -208,6 +212,7 @@ export async function GET() {
     }
 
     return NextResponse.json({
+      userType,
       organizations,
       groups: Object.values(groupMap),
       todaySchedules: todaySchedules.map((s: any) => ({

@@ -18,6 +18,7 @@ interface User {
   birth_date?: string;
   document_id?: string;
   blood_type?: string;
+  user_type?: "student" | "worker";
   role: string;
 }
 
@@ -41,6 +42,7 @@ export default function UsersPage() {
   const [birthDate, setBirthDate] = useState("");
   const [documentId, setDocumentId] = useState("");
   const [bloodType, setBloodType] = useState("");
+  const [userType, setUserType] = useState("worker");
   const [role, setRole] = useState("user");
   const [organizationId, setOrganizationId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,6 +88,7 @@ export default function UsersPage() {
       setBirthDate(user.birth_date ? new Date(user.birth_date).toISOString().split('T')[0] : "");
       setDocumentId(user.document_id || "");
       setBloodType(user.blood_type || "");
+      setUserType(user.user_type || "worker");
       setRole(user.role);
     } else {
       setSelectedUser(null);
@@ -96,6 +99,7 @@ export default function UsersPage() {
       setBirthDate("");
       setDocumentId("");
       setBloodType("");
+      setUserType("worker");
       setRole("user");
     }
     onOpen();
@@ -125,7 +129,8 @@ export default function UsersPage() {
         organization_id: organizationId,
         birth_date: birthDate || undefined,
         document_id: documentId,
-        blood_type: bloodType
+        blood_type: bloodType,
+        user_type: userType
       };
       if (password) payload.password = password;
 
@@ -296,6 +301,17 @@ export default function UsersPage() {
                     <SelectItem key="O-">O-</SelectItem>
                   </Select>
                   <Select 
+                    label="Tipo de Usuario" 
+                    variant="bordered" 
+                    selectedKeys={[userType]}
+                    onChange={(e) => setUserType(e.target.value)}
+                  >
+                    <SelectItem key="worker">Trabajador</SelectItem>
+                    <SelectItem key="student">Estudiante</SelectItem>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Select 
                     label="Rol" 
                     variant="bordered" 
                     selectedKeys={[role]}
@@ -304,15 +320,15 @@ export default function UsersPage() {
                   >
                     <SelectItem key="user">Usuario normal</SelectItem>
                   </Select>
+                  <Input 
+                    label="Correo" 
+                    type="email"
+                    placeholder="Ingresa el correo" 
+                    variant="bordered"
+                    value={email}
+                    onValueChange={setEmail}
+                  />
                 </div>
-                <Input 
-                  label="Correo" 
-                  type="email"
-                  placeholder="Ingresa el correo" 
-                  variant="bordered"
-                  value={email}
-                  onValueChange={setEmail}
-                />
                 <Input 
                   label="Contraseña" 
                   type="password"

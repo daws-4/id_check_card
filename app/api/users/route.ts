@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { 
       name, last_name, email, password, role, organization_id, has_nfc_card,
-      birth_date, document_id, blood_type
+      birth_date, document_id, blood_type, user_type
     } = body;
 
     if (!name || !email || !password) {
@@ -58,6 +58,7 @@ export async function POST(req: Request) {
     if (birth_date) createPayload.birth_date = birth_date;
     if (document_id) createPayload.document_id = document_id;
     if (blood_type) createPayload.blood_type = blood_type;
+    if (user_type) createPayload.user_type = user_type;
 
     const newUser = await User.create(createPayload);
 

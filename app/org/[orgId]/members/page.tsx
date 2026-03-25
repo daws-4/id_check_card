@@ -50,6 +50,7 @@ export default function MembersPage() {
   const [newBirthDate, setNewBirthDate] = useState("");
   const [newDocumentId, setNewDocumentId] = useState("");
   const [newBloodType, setNewBloodType] = useState("");
+  const [newUserType, setNewUserType] = useState("worker");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -85,6 +86,7 @@ export default function MembersPage() {
     setNewBirthDate("");
     setNewDocumentId("");
     setNewBloodType("");
+    setNewUserType("worker");
     onOpen();
   };
 
@@ -107,6 +109,7 @@ export default function MembersPage() {
             birth_date: newBirthDate || undefined,
             document_id: newDocumentId,
             blood_type: newBloodType,
+            user_type: newUserType,
             organization_id: orgId,
             role: role === "admin" ? "org_admin" : "user" 
           }),
@@ -273,6 +276,12 @@ export default function MembersPage() {
                         <SelectItem key="AB-">AB-</SelectItem>
                         <SelectItem key="O+">O+</SelectItem>
                         <SelectItem key="O-">O-</SelectItem>
+                      </Select>
+                    )}
+                    {role === "user" && (
+                      <Select label="Tipo de Usuario" variant="bordered" selectedKeys={new Set([newUserType])} onChange={(e) => setNewUserType(e.target.value)}>
+                        <SelectItem key="worker">Trabajador</SelectItem>
+                        <SelectItem key="student">Estudiante</SelectItem>
                       </Select>
                     )}
                     {role === "user" && (

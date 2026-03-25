@@ -39,7 +39,7 @@ export default function MetricsPage() {
     );
   }
 
-  const { metrics, recentLogs = [] } = data;
+  const { metrics, recentLogs = [], userType } = data;
   const maxDailyMinutes = Math.max(
     ...metrics.dailyHours.map((d: any) => d.minutes),
     1
@@ -86,7 +86,7 @@ export default function MetricsPage() {
         <MetricCard
           icon={<Clock className="w-6 h-6" />}
           iconBg="bg-blue-100 text-blue-600"
-          label="Horas Trabajadas Hoy"
+          label={userType === "student" ? "Horas de Estudio Hoy" : "Horas Trabajadas Hoy"}
           value={`${metrics.totalHoursWorked}h`}
           subtext="En instalaciones"
         />
@@ -216,7 +216,9 @@ export default function MetricsPage() {
               <p className="text-2xl font-bold text-[var(--color-tropical-teal)]">
                 {metrics.totalHoursWorked}h
               </p>
-              <p className="text-xs text-gray-400">Trabajadas hoy</p>
+              <p className="text-xs text-gray-400">
+                {userType === "student" ? "Asistidas hoy" : "Trabajadas hoy"}
+              </p>
             </div>
             <div>
               <p className="text-2xl font-bold text-purple-500">

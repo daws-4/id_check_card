@@ -9,6 +9,7 @@ export interface IUser extends Document {
   birth_date?: Date;
   document_id?: string;
   blood_type?: string;
+  user_type?: 'student' | 'worker';
   role: 'superadmin' | 'org_admin' | 'user';
 }
 
@@ -21,6 +22,7 @@ const UserSchema: Schema = new Schema({
   birth_date: { type: Date },
   document_id: { type: String, unique: true, sparse: true },
   blood_type: { type: String },
+  user_type: { type: String, enum: ['student', 'worker'], default: 'worker' },
   role: { type: String, enum: ['superadmin', 'org_admin', 'user'], default: 'user' },
 }, { timestamps: true });
 

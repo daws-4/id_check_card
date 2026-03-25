@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 
 interface DashboardData {
+  userType: 'student' | 'worker';
   organizations: any[];
   groups: any[];
   todaySchedules: any[];
@@ -83,7 +84,7 @@ export default function UserDashboard() {
     );
   }
 
-  const { todaySchedules, pendingTasks, recentLogs, metrics } = data;
+  const { todaySchedules, pendingTasks, recentLogs, metrics, userType } = data;
 
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -132,7 +133,9 @@ export default function UserDashboard() {
               <Clock className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Horas Trabajadas</p>
+              <p className="text-sm text-gray-500">
+                {userType === "student" ? "Horas de Estudio" : "Horas Trabajadas"}
+              </p>
               <p className="text-2xl font-bold">{metrics.totalHoursWorked}h</p>
             </div>
           </CardBody>

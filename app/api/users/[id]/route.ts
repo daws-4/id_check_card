@@ -20,7 +20,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     await connectDB();
     const { id } = await params;
     const body = await req.json();
-    const { name, last_name, email, password, has_nfc_card, birth_date, document_id, blood_type } = body;
+    const { name, last_name, email, password, has_nfc_card, birth_date, document_id, blood_type, user_type } = body;
 
     const user = await User.findById(id);
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -47,6 +47,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     if (blood_type) updateData.$set.blood_type = blood_type;
     else if (blood_type === "") updateData.$unset.blood_type = 1;
+
+    if (user_type) updateData.$set.user_type = user_type;
 
     if (password) {
       const salt = await bcrypt.genSalt(10);
