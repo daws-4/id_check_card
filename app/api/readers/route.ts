@@ -4,8 +4,12 @@ import { Reader } from '@/models/Reader';
 
 export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const organization_id = searchParams.get('organization_id');
+
     await connectDB();
-    const readers = await Reader.find({}).populate('organization_id', 'name type').populate('group_id', 'name');
+    const query = organization_id ? { organization_id } : {};
+    const readers = await Reader.find(query).populate('organization_id', 'name type').populate('group_id', 'name');
     return NextResponse.json(readers);
   } catch (error: any) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

@@ -6,6 +6,7 @@ import { Button } from "@heroui/button";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/modal";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
+import { Checkbox } from "@heroui/checkbox";
 import { Autocomplete, AutocompleteItem } from "@heroui/autocomplete";
 import { Spinner } from "@heroui/spinner";
 import { useParams } from "next/navigation";
@@ -37,6 +38,9 @@ export default function MembersPage() {
   
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   
+  const [selectedKeys, setSelectedKeys] = useState<any>(new Set([]));
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
+
   // Form State
   const [mode, setMode] = useState<"select" | "create">("select");
   const [selectedUserId, setSelectedUserId] = useState("");
@@ -49,8 +53,10 @@ export default function MembersPage() {
   const [newPassword, setNewPassword] = useState("");
   const [newBirthDate, setNewBirthDate] = useState("");
   const [newDocumentId, setNewDocumentId] = useState("");
+  const [newDocPrefix, setNewDocPrefix] = useState("V");
   const [newBloodType, setNewBloodType] = useState("");
   const [newUserType, setNewUserType] = useState("worker");
+  const [newStrictSchedule, setNewStrictSchedule] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -85,8 +91,10 @@ export default function MembersPage() {
     setNewPassword("");
     setNewBirthDate("");
     setNewDocumentId("");
+    setNewDocPrefix("V");
     setNewBloodType("");
     setNewUserType("worker");
+    setNewStrictSchedule(false);
     onOpen();
   };
 
@@ -107,9 +115,10 @@ export default function MembersPage() {
             email: newEmail, 
             password: newPassword, 
             birth_date: newBirthDate || undefined,
-            document_id: newDocumentId,
+            document_id: newDocumentId ? `${newDocPrefix}-${newDocumentId}` : undefined,
             blood_type: newBloodType,
             user_type: newUserType,
+            strict_schedule_enforcement: newStrictSchedule,
             organization_id: orgId,
             role: role === "admin" ? "org_admin" : "user" 
           }),
@@ -159,16 +168,117 @@ export default function MembersPage() {
     }
   };
 
+  const handleBulkAction = async (action: 'delete' | 'assign_card' | 'enable_strict' | 'disable_strict') => {
+    let idsToProcess: string[] = [];
+
+    if (selectedKeys === "all") {
+      idsToProcess = memberships.map(m => action === 'delete' ? m._id : m.user_id._id);
+    } else {
+      idsToProcess = Array.from(selectedKeys as Set<string>).map(key => key.toString());
+    }
+
+    if (idsToProcess.length === 0) return;
+
+    if (action === 'delete') {
+      if (!confirm(`¿Eliminar ${idsToProcess.length} miembro(s) de la organización?`)) return;
+      try {
+        setIsBulkLoading(true);
+        const res = await fetch('/api/memberships/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ membershipIds: idsToProcess })
+        });
+        if (res.ok) {
+          setSelectedKeys(new Set());
+          await fetchData();
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsBulkLoading(false);
+      }
+    } else if (action === 'assign_card') {
+      if (!confirm(`¿Asignar tarjeta NFC a ${idsToProcess.length} miembro(s)?`)) return;
+      try {
+        setIsBulkLoading(true);
+        // Extract distinct user_ids from selected membership IDs
+        const membershipsMap = new Map(memberships.map(m => [m._id, m.user_id._id]));
+        const userIds = idsToProcess.map(mId => membershipsMap.get(mId)).filter(Boolean);
+        
+        const res = await fetch('/api/users/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'assign_card', userIds })
+        });
+        if (res.ok) {
+          setSelectedKeys(new Set());
+          await fetchData();
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsBulkLoading(false);
+      }
+    } else if (action === 'enable_strict' || action === 'disable_strict') {
+      const verb = action === 'enable_strict' ? 'Activar' : 'Desactivar';
+      if (!confirm(`¿${verb} Horario Estricto a ${idsToProcess.length} miembro(s)?`)) return;
+      try {
+        setIsBulkLoading(true);
+        const membershipsMap = new Map(memberships.map(m => [m._id, m.user_id._id]));
+        const userIds = idsToProcess.map(mId => membershipsMap.get(mId)).filter(Boolean);
+        
+        const res = await fetch('/api/users/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, userIds })
+        });
+        if (res.ok) {
+          setSelectedKeys(new Set());
+          await fetchData();
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsBulkLoading(false);
+      }
+    }
+  };
+
+  const selectedCount = selectedKeys === "all" ? memberships.length : (selectedKeys as Set<string>).size;
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Miembros de la Organización</h2>
-        <Button color="primary" onPress={handleOpenModal}>
-          Agregar Miembro
-        </Button>
+        <div className="flex items-center gap-2">
+          {selectedCount > 0 && (
+            <>
+              <Button color="secondary" variant="flat" size="sm" isLoading={isBulkLoading} onPress={() => handleBulkAction('assign_card')}>
+                Tarjeta ({selectedCount})
+              </Button>
+              <Button color="warning" variant="flat" size="sm" isLoading={isBulkLoading} onPress={() => handleBulkAction('enable_strict')}>
+                + Estricto
+              </Button>
+              <Button color="default" variant="flat" size="sm" isLoading={isBulkLoading} onPress={() => handleBulkAction('disable_strict')}>
+                - Estricto
+              </Button>
+              <Button color="danger" variant="flat" size="sm" isLoading={isBulkLoading} onPress={() => handleBulkAction('delete')}>
+                Eliminar ({selectedCount})
+              </Button>
+            </>
+          )}
+          <Button color="primary" onPress={handleOpenModal}>
+            Agregar Miembro
+          </Button>
+        </div>
       </div>
 
-      <Table aria-label="Members table">
+      <Table 
+        aria-label="Members table" 
+        selectionMode="multiple" 
+        selectedKeys={selectedKeys} 
+        onSelectionChange={setSelectedKeys}
+      >
         <TableHeader>
           <TableColumn>NOMBRE</TableColumn>
           <TableColumn>CORREO</TableColumn>
@@ -254,13 +364,25 @@ export default function MembersPage() {
                         <Input label="Apellido" placeholder="Ingresa el apellido" variant="bordered" value={newLastName} onValueChange={setNewLastName} />
                       )}
                       {role === "admin" && (
-                        <Input label="Número de Cédula" placeholder="Número de cédula" variant="bordered" value={newDocumentId} onValueChange={setNewDocumentId} />
+                        <div className="flex gap-2">
+                          <Select label="Tipo" variant="bordered" selectedKeys={[newDocPrefix]} onChange={(e) => setNewDocPrefix(e.target.value)} className="w-24 flex-shrink-0">
+                            <SelectItem key="V">V-</SelectItem>
+                            <SelectItem key="E">E-</SelectItem>
+                          </Select>
+                          <Input label="Cédula" placeholder="Ej. 12345678" variant="bordered" value={newDocumentId} onValueChange={(v) => setNewDocumentId(v.replace(/\D/g, ''))} />
+                        </div>
                       )}
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <Input label="Fecha Nacimiento" type="date" variant="bordered" value={newBirthDate} onValueChange={setNewBirthDate} />
                       {role === "user" && (
-                        <Input label="Cédula" placeholder="Número de cédula" variant="bordered" value={newDocumentId} onValueChange={setNewDocumentId} />
+                        <div className="flex gap-2">
+                          <Select label="Tipo" variant="bordered" selectedKeys={[newDocPrefix]} onChange={(e) => setNewDocPrefix(e.target.value)} className="w-24 flex-shrink-0">
+                            <SelectItem key="V">V-</SelectItem>
+                            <SelectItem key="E">E-</SelectItem>
+                          </Select>
+                          <Input label="Cédula" placeholder="Ej. 12345678" variant="bordered" value={newDocumentId} onValueChange={(v) => setNewDocumentId(v.replace(/\D/g, ''))} />
+                        </div>
                       )}
                       {role === "admin" && (
                          <Input label="Correo" type="email" placeholder="Ingresa el correo" variant="bordered" value={newEmail} onValueChange={setNewEmail} />
@@ -279,10 +401,23 @@ export default function MembersPage() {
                       </Select>
                     )}
                     {role === "user" && (
-                      <Select label="Tipo de Usuario" variant="bordered" selectedKeys={new Set([newUserType])} onChange={(e) => setNewUserType(e.target.value)}>
-                        <SelectItem key="worker">Trabajador</SelectItem>
-                        <SelectItem key="student">Estudiante</SelectItem>
-                      </Select>
+                      <div className="flex flex-col gap-2">
+                        <Select label="Tipo de Usuario" variant="bordered" selectedKeys={new Set([newUserType])} onChange={(e) => setNewUserType(e.target.value)}>
+                          <SelectItem key="worker">Trabajador</SelectItem>
+                          <SelectItem key="student">Estudiante</SelectItem>
+                        </Select>
+                        <Checkbox 
+                          color="warning"
+                          isSelected={newStrictSchedule} 
+                          onValueChange={setNewStrictSchedule} 
+                          size="sm"
+                        >
+                          <div className="flex flex-col">
+                            <span>Horario Estricto Activo</span>
+                            <span className="text-tiny text-default-400">Impide acumular horas extra y tiempos libres</span>
+                          </div>
+                        </Checkbox>
+                      </div>
                     )}
                     {role === "user" && (
                       <Input label="Correo" type="email" placeholder="Ingresa el correo" variant="bordered" value={newEmail} onValueChange={setNewEmail} />

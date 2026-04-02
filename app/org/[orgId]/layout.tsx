@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import LogoutButton from "@/components/LogoutButton";
-import { Nfc, LayoutDashboard, Users, UsersRound, CalendarPlus } from "lucide-react";
+import { Nfc, LayoutDashboard, Users, UsersRound, CalendarPlus, Router, Receipt } from "lucide-react";
 
 export default function OrgLayout({ children }: { children: ReactNode }) {
   const params = useParams();
@@ -17,6 +17,8 @@ export default function OrgLayout({ children }: { children: ReactNode }) {
     { href: `/org/${orgId}/members`, label: "Miembros", icon: Users },
     { href: `/org/${orgId}/groups`, label: "Grupos", icon: UsersRound },
     { href: `/org/${orgId}/attendance`, label: "Reportes", icon: CalendarPlus },
+    { href: `/org/${orgId}/readers`, label: "Lectores", icon: Router },
+    { href: `/org/${orgId}/billing`, label: "Facturación", icon: Receipt },
   ];
 
   return (

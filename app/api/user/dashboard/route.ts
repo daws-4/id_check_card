@@ -25,6 +25,60 @@ function minutesSinceMidnight(date: Date): number {
   return date.getHours() * 60 + date.getMinutes();
 }
 
+function calculateWorkedMinutes(dayLogs: any[], dailySchedules: any[], enforceStrict: boolean): number {
+  let totalMinutes = 0;
+  
+  if (!enforceStrict) {
+    for (let i = 0; i < dayLogs.length; i++) {
+      const log = dayLogs[i];
+      if (log.type === "entrada" && i + 1 < dayLogs.length && dayLogs[i+1].type === "salida") {
+        totalMinutes += (new Date(dayLogs[i+1].timestamp).getTime() - new Date(log.timestamp).getTime()) / 60000;
+      }
+    }
+    return totalMinutes;
+  }
+
+  // Strict enforcement: calculate intersections
+  const scheduleIntervals: [number, number][] = dailySchedules.map((s: any) => [
+    timeToMinutes(s.start_time),
+    timeToMinutes(s.end_time)
+  ]);
+  scheduleIntervals.sort((a, b) => a[0] - b[0]);
+  const mergedIntervals: [number, number][] = [];
+  if (scheduleIntervals.length > 0) {
+    mergedIntervals.push([...scheduleIntervals[0]]);
+    for (let i = 1; i < scheduleIntervals.length; i++) {
+      const current = scheduleIntervals[i];
+      const last = mergedIntervals[mergedIntervals.length - 1];
+      if (current[0] <= last[1]) {
+        last[1] = Math.max(last[1], current[1]);
+      } else {
+        mergedIntervals.push([...current]);
+      }
+    }
+  }
+
+  for (let i = 0; i < dayLogs.length; i++) {
+    if (dayLogs[i].type === "entrada" && i + 1 < dayLogs.length && dayLogs[i+1].type === "salida") {
+      const entryTime = new Date(dayLogs[i].timestamp);
+      const exitTime = new Date(dayLogs[i+1].timestamp);
+      
+      const entryMin = entryTime.getHours() * 60 + entryTime.getMinutes();
+      let exitMin = exitTime.getHours() * 60 + exitTime.getMinutes();
+      if (exitTime.getDate() !== entryTime.getDate()) exitMin = 1440; // cap at midnight
+      
+      let intersectMinutes = 0;
+      for (const interval of mergedIntervals) {
+        const overlapStart = Math.max(entryMin, interval[0]);
+        const overlapEnd = Math.min(exitMin, interval[1]);
+        if (overlapEnd > overlapStart) intersectMinutes += (overlapEnd - overlapStart);
+      }
+      totalMinutes += intersectMinutes;
+    }
+  }
+  return totalMinutes;
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -35,6 +89,10 @@ export async function GET() {
 
     const userDoc = await User.findById(userId);
     const userType = userDoc?.user_type || 'worker';
+
+    // Prevent Next.js from treeshaking unused models needed for .populate()
+    void Organization;
+    void Group;
 
     // 1. Get memberships and organizations
     const memberships = await Membership.find({ user_id: userId }).populate("organization_id");
@@ -111,34 +169,42 @@ export async function GET() {
         ? Math.round((schedulesComplied / todaySchedules.length) * 100)
         : 100;
 
-    // Total hours worked today (sum of entrada-salida pairs)
-    let totalMinutesWorked = 0;
-    let overtimeMinutes = 0;
+    // Calculate EXPECTED minutes today from schedule durations
+    let expectedMinutesToday = 0;
+    for (const schedule of todaySchedules) {
+      const startMin = timeToMinutes(schedule.start_time);
+      const endMin = timeToMinutes(schedule.end_time);
+      if (endMin > startMin) {
+        expectedMinutesToday += endMin - startMin;
+      }
+    }
+
+    // Total hours worked today (sum of entrada-salida pairs, intersected if strict)
+    let totalMinutesWorked = calculateWorkedMinutes(todayLogs, todaySchedules, userDoc?.strict_schedule_enforcement || false);
     let lateArrivals = 0;
     let totalLateMinutes = 0;
 
     for (let i = 0; i < todayLogs.length; i++) {
       const log = todayLogs[i] as any;
-      if (log.type === "entrada" && i + 1 < todayLogs.length) {
-        const nextLog = todayLogs[i + 1] as any;
-        if (nextLog.type === "salida") {
-          const diff =
-            (new Date(nextLog.timestamp).getTime() -
-              new Date(log.timestamp).getTime()) /
-            60000;
-          totalMinutesWorked += diff;
-        }
-      }
       // Track late arrivals
       if (log.status === "late" && log.type === "entrada") {
         lateArrivals++;
         totalLateMinutes += Math.abs(log.time_variance_minutes || 0);
       }
-      // Track overtime
-      if (log.status === "overtime" && log.type === "salida") {
-        overtimeMinutes += Math.abs(log.time_variance_minutes || 0);
-      }
     }
+
+    // Calculate net overtime and deficit based on expected vs actual
+    // Overtime only counts when actual hours EXCEED expected hours
+    // If someone enters late but exits late → compensated → no overtime
+    const netOvertimeMinutes = expectedMinutesToday > 0
+      ? Math.max(0, Math.round(totalMinutesWorked - expectedMinutesToday))
+      : 0;
+    const hoursDeficit = expectedMinutesToday > 0
+      ? Math.max(0, Math.round(expectedMinutesToday - totalMinutesWorked))
+      : 0;
+    const dailyCompliance = expectedMinutesToday > 0
+      ? Math.min(100, Math.round((totalMinutesWorked / expectedMinutesToday) * 100))
+      : 100;
 
     // Weekly metrics
     const weekStart = new Date(now);
@@ -164,21 +230,43 @@ export async function GET() {
         (l: any) =>
           new Date(l.timestamp) >= dayStart && new Date(l.timestamp) < dayEnd
       );
+      
+      const daySchedules = allSchedules.filter((s: any) => s.days_of_week.includes(dayStart.getDay()));
+      let dayMinutes = calculateWorkedMinutes(dayLogs, daySchedules, userDoc?.strict_schedule_enforcement || false);
 
-      let dayMinutes = 0;
-      for (let i = 0; i < dayLogs.length; i++) {
-        const l = dayLogs[i] as any;
-        if (l.type === "entrada" && i + 1 < dayLogs.length) {
-          const next = dayLogs[i + 1] as any;
-          if (next.type === "salida") {
-            dayMinutes +=
-              (new Date(next.timestamp).getTime() -
-                new Date(l.timestamp).getTime()) /
-              60000;
-          }
-        }
-      }
       dailyHours.push({ day: dayNames[d], minutes: Math.round(dayMinutes) });
+    }
+
+    // Build daily hours PER ORGANIZATION for the week
+    const dailyHoursByOrg: { orgId: string; orgName: string; orgType: string; dailyHours: { day: string; minutes: number }[] }[] = [];
+    for (const org of organizations) {
+      const orgWeekLogs = weekLogs.filter(
+        (l: any) => l.organization_id.toString() === org._id.toString()
+      );
+      const orgDailyHours: { day: string; minutes: number }[] = [];
+      for (let d = 0; d < 7; d++) {
+        const dayStart = new Date(weekStart);
+        dayStart.setDate(dayStart.getDate() + d);
+        const dayEnd = new Date(dayStart);
+        dayEnd.setDate(dayEnd.getDate() + 1);
+
+        const dayLogs = orgWeekLogs.filter(
+          (l: any) =>
+            new Date(l.timestamp) >= dayStart && new Date(l.timestamp) < dayEnd
+        );
+
+        // We filter schedules by organization via groupMap later or just allSchedules because we are filtering logs by org already
+        const daySchedules = allSchedules.filter((s: any) => s.days_of_week.includes(dayStart.getDay()));
+        let dayMinutes = calculateWorkedMinutes(dayLogs, daySchedules, userDoc?.strict_schedule_enforcement || false);
+
+        orgDailyHours.push({ day: dayNames[d], minutes: Math.round(dayMinutes) });
+      }
+      dailyHoursByOrg.push({
+        orgId: org._id.toString(),
+        orgName: org.name,
+        orgType: org.type,
+        dailyHours: orgDailyHours,
+      });
     }
 
     // Weekly late arrivals
@@ -188,13 +276,18 @@ export async function GET() {
 
     const metrics = {
       scheduleCompliance,
+      dailyCompliance,
       totalHoursWorked: +(totalMinutesWorked / 60).toFixed(1),
-      overtimeMinutes: Math.round(overtimeMinutes),
+      expectedMinutesToday,
+      overtimeMinutes: netOvertimeMinutes,
+      hoursDeficit,
       lateArrivals,
       avgLateMinutes:
         lateArrivals > 0 ? Math.round(totalLateMinutes / lateArrivals) : 0,
       dailyHours,
+      dailyHoursByOrg,
       weeklyLateCount: weeklyLateArrivals.length,
+      strictScheduleEnforcement: userDoc?.strict_schedule_enforcement || false,
     };
 
     // 7. Group info mapping for tasks/schedules
@@ -207,6 +300,7 @@ export async function GET() {
         _id: (g as any)._id,
         name: (g as any).name,
         type: (g as any).type,
+        organization_id: (g as any).organization_id,
         role: gm?.role || "member",
       };
     }
@@ -219,13 +313,15 @@ export async function GET() {
         ...s.toObject(),
         groupName: groupMap[s.group_id.toString()]?.name || "—",
       })),
-      pendingTasks: pendingTasks.slice(0, 10).map((t: any) => ({
+      pendingTasks: pendingTasks.map((t: any) => ({
         ...t.toObject(),
         groupName: groupMap[t.group_id.toString()]?.name || "—",
+        organization_id: groupMap[t.group_id.toString()]?.organization_id || null,
       })),
       completedTasks: completedTasks.map((t: any) => ({
         ...t.toObject(),
         groupName: groupMap[t.group_id.toString()]?.name || "—",
+        organization_id: groupMap[t.group_id.toString()]?.organization_id || null,
       })),
       recentLogs,
       metrics,

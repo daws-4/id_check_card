@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Card, CardBody, CardHeader } from "@heroui/card";
@@ -14,6 +14,18 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlError = searchParams.get('error');
+      if (urlError === 'AccessDenied') {
+        setError('Acceso denegado: Tu cuenta no está registrada.');
+      } else if (urlError === 'OAuthSignin' || urlError === 'OAuthCallback') {
+        setError('Ocurrió un error al iniciar sesión con Google.');
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +59,28 @@ export default function LoginPage() {
         </CardHeader>
         <Divider className="bg-divider/5" />
         <CardBody className="p-8">
+          <div className="flex flex-col gap-6 mb-6">
+            <Button
+              variant="flat"
+              className="w-full bg-white text-[var(--color-carbon-black)] font-semibold shadow hover:bg-gray-100 flex items-center justify-center gap-3 transition-colors"
+              size="lg"
+              onPress={() => signIn('google', { callbackUrl: '/' })}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25C22.56 11.47 22.49 10.72 22.36 10H12V14.26H17.92C17.66 15.63 16.88 16.8 15.71 17.58V20.34H19.28C21.36 18.42 22.56 15.6 22.56 12.25Z" fill="#4285F4"/>
+                <path d="M12 23C14.97 23 17.46 22.02 19.28 20.34L15.71 17.58C14.73 18.24 13.48 18.64 12 18.64C9.13 18.64 6.7 16.7 5.82 14.1H2.14V16.94C3.96 20.55 7.69 23 12 23Z" fill="#34A853"/>
+                <path d="M5.82 14.1C5.6 13.44 5.47 12.73 5.47 12C5.47 11.27 5.6 10.56 5.82 9.9V7.06H2.14C1.4 8.53 1 10.21 1 12C1 13.79 1.4 15.47 2.14 16.94L5.82 14.1Z" fill="#FBBC05"/>
+                <path d="M12 5.38C13.62 5.38 15.06 5.94 16.21 7.03L19.37 3.87C17.46 2.09 14.97 1 12 1C7.69 1 3.96 3.45 2.14 7.06L5.82 9.9C6.7 7.3 9.13 5.38 12 5.38Z" fill="#EA4335"/>
+              </svg>
+              Continuar con Google
+            </Button>
+            
+            <div className="flex items-center gap-4">
+              <Divider className="flex-1 bg-divider/10" />
+              <span className="text-xs text-[var(--color-lavender-mist)]/50 uppercase tracking-wider">O usa tu contraseña</span>
+              <Divider className="flex-1 bg-divider/10" />
+            </div>
+          </div>
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <Input
               isRequired
@@ -92,8 +126,13 @@ export default function LoginPage() {
             >
               Iniciar Sesión
             </Button>
-            <div className="text-center text-sm text-[var(--color-lavender-mist)]/70 mt-4">
-              ¿Eres administrador? <a href="/admin-login" className="text-[var(--color-maya-blue)] hover:underline">Ingresa aquí</a>
+            <div className="text-center text-sm text-[var(--color-lavender-mist)]/70 mt-4 flex flex-col gap-2">
+              <a href="/forgot-password" className="text-[var(--color-maya-blue)] hover:underline">
+                ¿Olvidaste tu contraseña?
+              </a>
+              <span>
+                ¿Eres administrador? <a href="/admin-login" className="text-[var(--color-maya-blue)] hover:underline">Ingresa aquí</a>
+              </span>
             </div>
           </form>
         </CardBody>

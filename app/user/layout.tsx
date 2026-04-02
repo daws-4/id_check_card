@@ -5,13 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import LogoutButton from "@/components/LogoutButton";
-import { Nfc, LayoutDashboard, Calendar, ListChecks, BarChart3, UserCircle } from "lucide-react";
+import { Nfc, LayoutDashboard, Calendar, ListChecks, BarChart3, UserCircle, Building2 } from "lucide-react";
 
 export default function UserLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   const navItems = [
     { href: "/user", label: "Inicio", icon: LayoutDashboard },
+    { href: "/user/organizations", label: "Mis Organizaciones", icon: Building2 },
     { href: "/user/schedules", label: "Horarios", icon: Calendar },
     { href: "/user/tasks", label: "Tareas", icon: ListChecks },
     { href: "/user/metrics", label: "Métricas", icon: BarChart3 },

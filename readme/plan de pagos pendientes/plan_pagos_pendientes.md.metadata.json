@@ -1,0 +1,6 @@
+{
+  "artifactType":  "ARTIFACT_TYPE_IMPLEMENTATION_PLAN",
+  "summary":  "Plan de implementación detallado para el módulo de facturación y pagos pendientes por organización. Cubre los modelos de datos (BillingConfig, Invoice), las API routes necesarias, las interfaces de superadmin para configuración de tarifas y gestión de facturas, el cálculo automático de costos basado en usuarios activos y máquinas instaladas, y la preparación para una futura integración con Stripe. El plan está dividido en 5 fases incrementales con estimaciones de esfuerzo.",
+  "updatedAt":  "2026-04-01T21:41:54.503825200Z",
+  "requestFeedback":  true
+}

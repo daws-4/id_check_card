@@ -92,8 +92,13 @@ export default function AdminLoginPage() {
             >
               Iniciar Sesión
             </Button>
-            <div className="text-center text-sm text-[var(--color-lavender-mist)]/70 mt-4">
-              ¿Eres un usuario normal? <a href="/login" className="text-[var(--color-maya-blue)] hover:underline">Ingresa aquí</a>
+            <div className="text-center text-sm text-[var(--color-lavender-mist)]/70 mt-4 flex flex-col gap-2">
+              <a href="/forgot-password" className="text-[var(--color-maya-blue)] hover:underline">
+                ¿Olvidaste tu contraseña?
+              </a>
+              <span>
+                ¿Eres un usuario normal? <a href="/login" className="text-[var(--color-maya-blue)] hover:underline">Ingresa aquí</a>
+              </span>
             </div>
           </form>
         </CardBody>

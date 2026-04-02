@@ -19,12 +19,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     await connectDB();
     const { id } = await params;
     const body = await req.json();
-    const { name, type, settings } = body;
+    const { name, type, settings, tax_id, billing_plan, billing_rates } = body;
 
     const updateData: any = {};
     if (name) updateData.name = name;
     if (type) updateData.type = type;
+    if (tax_id !== undefined) updateData.tax_id = tax_id || null;
     if (settings) updateData.settings = settings;
+    if (billing_plan !== undefined) updateData.billing_plan = billing_plan;
+    if (billing_rates !== undefined) updateData.billing_rates = billing_rates;
 
     const updatedOrganization = await Organization.findByIdAndUpdate(id, updateData, { new: true });
     if (!updatedOrganization) return NextResponse.json({ error: 'Organization not found' }, { status: 404 });

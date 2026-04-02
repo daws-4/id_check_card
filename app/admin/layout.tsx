@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import LogoutButton from "@/components/LogoutButton";
-import { Nfc, LayoutDashboard, Building2, Users, Router, UserCog, Moon } from "lucide-react";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { Nfc, LayoutDashboard, Building2, Users, Router, UserCog, Moon, Receipt } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -16,12 +17,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     { href: "/admin/readers", label: "Lectores y Dispositivos", icon: Router },
     { href: "/admin/admins", label: "Administradores", icon: UserCog },
     { href: "/admin/users", label: "Usuarios", icon: Users },
+    { href: "/admin/billing", label: "Facturación", icon: Receipt },
   ];
 
   return (
-    <div className="bg-[var(--color-lavender-mist)] flex h-screen overflow-hidden text-[var(--color-carbon-black)]">
+    <div className="bg-[var(--color-lavender-mist)] dark:bg-zinc-950 flex h-screen overflow-hidden text-[var(--color-carbon-black)] dark:text-gray-100">
       {/* Barra Lateral (Sidebar) */}
-      <aside className="w-64 bg-[var(--color-carbon-black)] flex flex-col justify-between shadow-xl z-20">
+      <aside className="w-64 bg-[var(--color-carbon-black)] dark:bg-zinc-900 flex flex-col justify-between shadow-xl z-20">
         <div>
           {/* Encabezado del Logo */}
           <div className="p-6">
@@ -75,14 +77,15 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Contenido Principal */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[var(--color-lavender-mist)]">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[var(--color-lavender-mist)] dark:bg-zinc-950">
         {/* Barra superior (Topbar) */}
-        <header className="bg-white px-8 py-5 shadow-sm border-b border-gray-100 z-10 flex items-center justify-between">
+        <header className="bg-white dark:bg-zinc-900 px-8 py-5 shadow-sm border-b border-gray-100 dark:border-white/10 z-10 flex items-center justify-between">
           <h2 className="text-[var(--color-tropical-teal)] text-xl font-bold flex items-center gap-2">
             Área de Admin
           </h2>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500">Bienvenido de nuevo</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">Bienvenido de nuevo</span>
+            <ThemeSwitcher />
           </div>
         </header>
 

@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   try {
     await connectDB();
     const body = await req.json();
-    const { name, type, settings } = body;
+    const { name, type, settings, tax_id, billing_plan, billing_rates } = body;
 
     if (!name || !type) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -25,7 +25,10 @@ export async function POST(req: Request) {
     const newOrganization = await Organization.create({
       name,
       type,
-      settings: settings || {}
+      tax_id: tax_id || undefined,
+      settings: settings || {},
+      billing_plan: billing_plan || 'none',
+      billing_rates: billing_rates || undefined
     });
 
     return NextResponse.json({ message: 'Organization created', organization: newOrganization }, { status: 201 });

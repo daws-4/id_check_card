@@ -100,7 +100,7 @@ export async function POST(req: Request) {
     }
 
     // 5. Calculate compliance status based on schedules
-    let status: 'on_time' | 'late' | 'early_leave' | 'overtime' | undefined;
+    let status: 'on_time' | 'late' | 'early_leave' | 'overtime' | 'out_of_schedule' | undefined;
     let time_variance_minutes: number | undefined;
 
     const now = new Date();
@@ -134,8 +134,12 @@ export async function POST(req: Request) {
         const scheduleStartMin = timeToMinutes(closestSchedule.start_time);
         const variance = nowMinutes - scheduleStartMin; // positive = late
 
-        time_variance_minutes = variance;
-        status = variance <= 5 ? 'on_time' : 'late'; // 5 min grace period
+        if (Math.abs(closestDiff) > 60) {
+          status = 'out_of_schedule';
+        } else {
+          time_variance_minutes = variance;
+          status = variance <= 5 ? 'on_time' : 'late'; // 5 min grace period
+        }
       } else {
         // salida: find the closest schedule end_time
         let closestSchedule = todaySchedules[0];
@@ -152,13 +156,17 @@ export async function POST(req: Request) {
         const scheduleEndMin = timeToMinutes(closestSchedule.end_time);
         const variance = nowMinutes - scheduleEndMin; // positive = overtime
 
-        time_variance_minutes = variance;
-        if (variance > 5) {
-          status = 'overtime';
-        } else if (variance < -5) {
-          status = 'early_leave';
+        if (Math.abs(closestDiff) > 60) {
+          status = 'out_of_schedule';
         } else {
-          status = 'on_time';
+          time_variance_minutes = variance;
+          if (variance > 5) {
+            status = 'overtime';
+          } else if (variance < -5) {
+            status = 'early_leave';
+          } else {
+            status = 'on_time';
+          }
         }
       }
     }

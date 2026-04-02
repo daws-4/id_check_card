@@ -1,5 +1,6 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import connectDB from "@/config/db";
 import { User } from "@/models/User";
 import bcrypt from "bcryptjs";
@@ -7,6 +8,10 @@ import { Membership } from "@/models/Membership";
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || ""
+    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -40,6 +45,15 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Credenciales incorrectas');
         }
 
+        // Validar que el usuario haya completado su registro
+        if (user.status === 'pending') {
+          throw new Error('Tu cuenta está pendiente de activación. Revisa tu correo electrónico para completar tu registro.');
+        }
+
+        if (!user.password_hash) {
+          throw new Error('Debes completar tu registro primero. Revisa tu correo electrónico.');
+        }
+
         const isMatch = await bcrypt.compare(credentials.password, user.password_hash);
         if (!isMatch) {
           throw new Error('Credenciales incorrectas');
@@ -64,8 +78,41 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
+    async signIn({ user, account }) {
+      if (account?.provider === 'google') {
+        await connectDB();
+        const existingUser = await User.findOne({ email: user.email });
+        if (!existingUser) {
+          // Si el usuario no existe, se rechaza la autorización
+          return false;
+        }
+
+        // Auto-activación si estaba pendiente
+        if (existingUser.status === 'pending') {
+          existingUser.status = 'active';
+        }
+
+        // Registrar el proveedor si no lo tiene
+        if (!existingUser.auth_providers?.includes(account.provider)) {
+          existingUser.auth_providers = existingUser.auth_providers || [];
+          existingUser.auth_providers.push(account.provider);
+        }
+        await existingUser.save();
+        return true;
+      }
+      return true; // Para CredentialsProvider devuelve true por defecto si authorize() no arrojó error
+    },
+    async jwt({ token, user, account }) {
+      if (account?.provider === 'google') {
+        await connectDB();
+        const dbUser = await User.findOne({ email: token.email });
+        if (dbUser) {
+          token.id = dbUser._id.toString();
+          token.role = dbUser.role;
+          const memberships = await Membership.find({ user_id: dbUser._id, role: 'admin' });
+          token.orgs = memberships.map(m => m.organization_id.toString());
+        }
+      } else if (user) {
         token.id = user.id;
         token.role = (user as any).role;
         token.orgs = (user as any).orgs;

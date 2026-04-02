@@ -13,6 +13,13 @@ interface Organization {
   _id: string;
   name: string;
   type: string;
+  tax_id?: string;
+  billing_plan?: string;
+  billing_rates?: {
+    cost_per_active_user: number;
+    cost_per_active_reader: number;
+    currency: string;
+  };
 }
 
 const orgTypesTranslations: Record<string, string> = {
@@ -40,6 +47,11 @@ export default function OrganizationsPage() {
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
   const [name, setName] = useState("");
   const [type, setType] = useState("company");
+  const [taxId, setTaxId] = useState("");
+  const [billingPlan, setBillingPlan] = useState("none");
+  const [costPerUser, setCostPerUser] = useState("");
+  const [costPerReader, setCostPerReader] = useState("");
+  const [currency, setCurrency] = useState("USD");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -66,10 +78,20 @@ export default function OrganizationsPage() {
       setSelectedOrg(org);
       setName(org.name);
       setType(org.type);
+      setTaxId(org.tax_id ? org.tax_id.replace(/^J-/, '') : "");
+      setBillingPlan(org.billing_plan || "none");
+      setCostPerUser(org.billing_rates?.cost_per_active_user?.toString() || "");
+      setCostPerReader(org.billing_rates?.cost_per_active_reader?.toString() || "");
+      setCurrency(org.billing_rates?.currency || "USD");
     } else {
       setSelectedOrg(null);
       setName("");
       setType("company");
+      setTaxId("");
+      setBillingPlan("none");
+      setCostPerUser("");
+      setCostPerReader("");
+      setCurrency("USD");
     }
     onOpen();
   };
@@ -92,7 +114,17 @@ export default function OrganizationsPage() {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, type }),
+        body: JSON.stringify({ 
+          name, 
+          type, 
+          tax_id: taxId ? `J-${taxId}` : undefined,
+          billing_plan: billingPlan,
+          billing_rates: billingPlan === 'custom' ? {
+            cost_per_active_user: parseFloat(costPerUser) || 0,
+            cost_per_active_reader: parseFloat(costPerReader) || 0,
+            currency: currency
+          } : undefined
+        }),
       });
       
       if (res.ok) {
@@ -115,7 +147,7 @@ export default function OrganizationsPage() {
   return (
     <section>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h3 className="text-[var(--color-carbon-black)] text-2xl font-bold">Organizaciones</h3>
+        <h3 className="text-[var(--color-carbon-black)] dark:text-gray-100 text-2xl font-bold">Organizaciones</h3>
         <button 
           onClick={() => handleOpenModal()}
           className="bg-[var(--color-maya-blue)] hover:bg-[var(--color-tropical-teal)] text-white font-medium px-5 py-2.5 rounded-xl shadow-md shadow-[var(--color-maya-blue)]/30 transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer"
@@ -126,45 +158,49 @@ export default function OrganizationsPage() {
       </div>
 
       {/* Tabla de Organizaciones */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[var(--color-lavender-mist)]/50 border-b border-gray-100">
+              <tr className="bg-[var(--color-lavender-mist)]/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/10">
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Tipo</th>
+                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">RIF</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">ID</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-white/10">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center">
+                  <td colSpan={5} className="py-8 text-center text-gray-500">
                     <Spinner />
                   </td>
                 </tr>
               ) : organizations.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-gray-500">
+                  <td colSpan={5} className="py-8 text-center text-gray-500">
                     No se encontraron organizaciones.
                   </td>
                 </tr>
               ) : (
                 organizations.map((org, idx) => (
-                  <tr key={org._id} className="hover:bg-[var(--color-lavender-mist)]/30 transition-colors group">
+                  <tr key={org._id} className="hover:bg-[var(--color-lavender-mist)]/30 dark:hover:bg-white/5 transition-colors group">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${idx % 2 === 0 ? 'bg-[var(--color-tropical-teal)]/10 text-[var(--color-tropical-teal)]' : 'bg-[var(--color-electric-sapphire)]/10 text-[var(--color-electric-sapphire)]'}`}>
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${idx % 2 === 0 ? 'bg-[var(--color-tropical-teal)]/10 dark:bg-[var(--color-tropical-teal)]/20 text-[var(--color-tropical-teal)]' : 'bg-[var(--color-electric-sapphire)]/10 dark:bg-[var(--color-electric-sapphire)]/20 text-[var(--color-electric-sapphire)]'}`}>
                           {getInitials(org.name)}
                         </div>
-                        <span className="font-semibold text-[var(--color-carbon-black)]">{org.name}</span>
+                        <span className="font-semibold text-[var(--color-carbon-black)] dark:text-gray-100">{org.name}</span>
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <span className={`px-3 py-1 text-xs font-medium rounded-full border ${idx % 2 === 0 ? 'bg-[var(--color-maya-blue)]/10 text-[var(--color-maya-blue)] border-[var(--color-maya-blue)]/20' : 'bg-[var(--color-electric-sapphire)]/10 text-[var(--color-electric-sapphire)] border-[var(--color-electric-sapphire)]/20'}`}>
+                      <span className={`px-3 py-1 text-xs font-medium rounded-full border ${idx % 2 === 0 ? 'bg-[var(--color-maya-blue)]/10 text-[var(--color-maya-blue)] border-[var(--color-maya-blue)]/20 dark:bg-[var(--color-maya-blue)]/20 dark:border-[var(--color-maya-blue)]/30' : 'bg-[var(--color-electric-sapphire)]/10 text-[var(--color-electric-sapphire)] border-[var(--color-electric-sapphire)]/20 dark:bg-[var(--color-electric-sapphire)]/20 dark:border-[var(--color-electric-sapphire)]/30'}`}>
                         {orgTypesTranslations[org.type] || org.type}
                       </span>
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-500 font-mono">
+                      {org.tax_id || "—"}
                     </td>
                     <td className="py-4 px-6 text-sm text-gray-500 font-mono">
                       {org._id}
@@ -177,6 +213,7 @@ export default function OrganizationsPage() {
                           </button>
                         </DropdownTrigger>
                         <DropdownMenu aria-label="Acciones">
+                          <DropdownItem key="view" href={`/org/${org._id}`}>Ver Panel</DropdownItem>
                           <DropdownItem key="edit" onPress={() => handleOpenModal(org)}>Editar</DropdownItem>
                           <DropdownItem key="delete" className="text-danger" color="danger" onPress={() => handleDelete(org._id)}>Eliminar</DropdownItem>
                         </DropdownMenu>
@@ -225,6 +262,64 @@ export default function OrganizationsPage() {
                   <SelectItem key="gym">Gimnasio</SelectItem>
                   <SelectItem key="other">Otro</SelectItem>
                 </Select>
+                <div className="flex gap-2 items-end">
+                  <span className="text-sm font-semibold text-gray-500 pb-2.5 flex-shrink-0">J-</span>
+                  <Input 
+                    label="RIF (Número de Identificación Fiscal)" 
+                    placeholder="Ej. 123456789" 
+                    variant="bordered"
+                    value={taxId}
+                    onValueChange={(v) => setTaxId(v.replace(/\D/g, ''))}
+                    description="El RIF se guarda automáticamente con el prefijo J-"
+                  />
+                </div>
+
+                <div className="mt-4 border-t border-gray-100 pt-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Configuración de Facturación</h4>
+                  <Select 
+                    label="Plan de Facturación" 
+                    variant="bordered" 
+                    selectedKeys={[billingPlan]}
+                    onChange={(e) => setBillingPlan(e.target.value)}
+                  >
+                    <SelectItem key="none">Ninguno (No facturar)</SelectItem>
+                    <SelectItem key="default">Tarifa por Defecto / Global</SelectItem>
+                    <SelectItem key="custom">Tarifa Personalizada</SelectItem>
+                  </Select>
+                  
+                  {billingPlan === 'custom' && (
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      <Input 
+                        label="Costo p/usuario" 
+                        type="number"
+                        step="0.01"
+                        variant="bordered"
+                        value={costPerUser}
+                        onValueChange={setCostPerUser}
+                        startContent={<span className="text-gray-400 text-sm">$</span>}
+                      />
+                      <Input 
+                        label="Costo p/lector" 
+                        type="number"
+                        step="0.01"
+                        variant="bordered"
+                        value={costPerReader}
+                        onValueChange={setCostPerReader}
+                        startContent={<span className="text-gray-400 text-sm">$</span>}
+                      />
+                      <Select 
+                        label="Moneda" 
+                        variant="bordered" 
+                        selectedKeys={[currency]}
+                        onChange={(e) => setCurrency(e.target.value)}
+                        className="col-span-2"
+                      >
+                        <SelectItem key="USD">USD (Dólares)</SelectItem>
+                        <SelectItem key="VES">VES (Bolívares)</SelectItem>
+                      </Select>
+                    </div>
+                  )}
+                </div>
               </ModalBody>
               <ModalFooter>
                 <Button color="danger" variant="flat" onPress={onClose}>

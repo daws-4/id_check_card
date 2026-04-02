@@ -7,7 +7,7 @@ import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import { Spinner } from "@heroui/spinner";
 import { Button } from "@heroui/button";
-import { Plus, MoreVertical } from "lucide-react";
+import { Plus, MoreVertical, Mail } from "lucide-react";
 
 interface User {
   _id: string;
@@ -17,6 +17,7 @@ interface User {
   birth_date?: string;
   document_id?: string;
   role: string;
+  status?: "pending" | "active";
 }
 
 interface Organization {
@@ -34,12 +35,14 @@ export default function AdminsPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [documentId, setDocumentId] = useState("");
   const [role, setRole] = useState("org_admin");
   const [organizationId, setOrganizationId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Resend invite state
+  const [resendingUserId, setResendingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -85,7 +88,6 @@ export default function AdminsPage() {
       setSelectedUser(null);
       setName("");
       setEmail("");
-      setPassword("");
       setBirthDate("");
       setDocumentId("");
       setRole("org_admin");
@@ -104,6 +106,27 @@ export default function AdminsPage() {
     }
   };
 
+  const handleResendInvite = async (userId: string) => {
+    try {
+      setResendingUserId(userId);
+      const res = await fetch('/api/auth/resend-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      if (res.ok) {
+        alert('Invitación reenviada exitosamente.');
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Error al reenviar la invitación.');
+      }
+    } catch (error) {
+      console.error('Failed to resend invite', error);
+    } finally {
+      setResendingUserId(null);
+    }
+  };
+
   const handleSubmit = async (onClose: () => void) => {
     try {
       setIsSubmitting(true);
@@ -118,7 +141,6 @@ export default function AdminsPage() {
         birth_date: birthDate || undefined,
         document_id: documentId
       };
-      if (password) payload.password = password;
 
       const res = await fetch(url, {
         method,
@@ -130,7 +152,9 @@ export default function AdminsPage() {
         await fetchUsers();
         onClose();
       } else {
-        console.error("Failed to save user");
+        const err = await res.json();
+        alert(err.error || "Failed to save admin");
+        console.error("Failed to save user", err);
       }
     } catch (error) {
       console.error("Error saving user", error);
@@ -141,6 +165,13 @@ export default function AdminsPage() {
 
   const getInitials = (userName: string) => {
     return userName.substring(0, 2).toUpperCase();
+  };
+
+  const getStatusBadge = (status?: string) => {
+    if (status === 'active') {
+      return <span className="px-3 py-1 text-xs font-medium rounded-full border bg-success/20 text-success border-success/30">Activo</span>;
+    }
+    return <span className="px-3 py-1 text-xs font-medium rounded-full border bg-warning/20 text-warning border-warning/30">Pendiente</span>;
   };
 
   return (
@@ -164,6 +195,7 @@ export default function AdminsPage() {
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Cédula</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Correo</th>
+                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Estado</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Tiene Tarjeta</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Rol (Nivel)</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
@@ -172,13 +204,13 @@ export default function AdminsPage() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center">
+                  <td colSpan={7} className="py-8 text-center">
                     <Spinner />
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-gray-500">
+                  <td colSpan={7} className="py-8 text-center text-gray-500">
                     No se encontraron administradores.
                   </td>
                 </tr>
@@ -203,6 +235,9 @@ export default function AdminsPage() {
                       {user.email}
                     </td>
                     <td className="py-4 px-6">
+                      {getStatusBadge(user.status)}
+                    </td>
+                    <td className="py-4 px-6">
                       <span className={`px-3 py-1 text-xs font-medium rounded-full border ${user.has_nfc_card ? 'bg-success/20 text-success border-success/30' : 'bg-default-100 text-default-500 border-default-200'}`}>
                         {user.has_nfc_card ? 'Sí' : 'No'}
                       </span>
@@ -221,6 +256,18 @@ export default function AdminsPage() {
                         </DropdownTrigger>
                         <DropdownMenu aria-label="Acciones">
                           <DropdownItem key="edit" onPress={() => handleOpenModal(user)}>Editar</DropdownItem>
+                          {user.status === 'pending' ? (
+                            <DropdownItem 
+                              key="resend" 
+                              onPress={() => handleResendInvite(user._id)}
+                              startContent={<Mail className="w-4 h-4" />}
+                              className="text-warning"
+                            >
+                              {resendingUserId === user._id ? 'Enviando...' : 'Reenviar Invitación'}
+                            </DropdownItem>
+                          ) : (
+                            <DropdownItem key="resend-placeholder" className="hidden">-</DropdownItem>
+                          )}
                           <DropdownItem key="delete" className="text-danger" color="danger" onPress={() => handleDelete(user._id)}>Eliminar</DropdownItem>
                         </DropdownMenu>
                       </Dropdown>
@@ -273,14 +320,6 @@ export default function AdminsPage() {
                     onValueChange={setEmail}
                   />
                 </div>
-                <Input 
-                  label="Contraseña" 
-                  type="password"
-                  placeholder={selectedUser ? "Dejar en blanco para mantener" : "Ingresa la contraseña"}
-                  variant="bordered"
-                  value={password}
-                  onValueChange={setPassword}
-                />
                 <Select 
                   label="Rol Asignado" 
                   variant="bordered" 
@@ -303,13 +342,21 @@ export default function AdminsPage() {
                     ))}
                   </Select>
                 )}
+                {!selectedUser && (
+                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                    <p className="text-sm text-primary flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Se enviará un correo de invitación para que el administrador defina su propia contraseña.
+                    </p>
+                  </div>
+                )}
               </ModalBody>
               <ModalFooter>
                 <Button color="danger" variant="flat" onPress={onClose}>
                   Cancelar
                 </Button>
                 <Button color="primary" onPress={() => handleSubmit(onClose)} isLoading={isSubmitting} isDisabled={role === "org_admin" && !organizationId}>
-                  {selectedUser ? "Guardar Cambios" : "Crear Administrador"}
+                  {selectedUser ? "Guardar Cambios" : "Crear e Invitar"}
                 </Button>
               </ModalFooter>
             </>

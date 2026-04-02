@@ -32,6 +32,8 @@ interface DashboardData {
     avgLateMinutes: number;
     dailyHours: { day: string; minutes: number }[];
     weeklyLateCount: number;
+    strictScheduleEnforcement: boolean;
+    expectedMinutesToday: number;
   };
   error?: string;
   details?: string;
@@ -143,9 +145,13 @@ export default function UserDashboard() {
             </div>
             <div>
               <p className="text-sm text-gray-500">
-                {userType === "student" ? "Horas de Estudio" : "Horas Trabajadas"}
+                {metrics.strictScheduleEnforcement ? "Horas Cumplidas" : (userType === "student" ? "Horas de Estudio" : "Horas Trabajadas")}
               </p>
-              <p className="text-2xl font-bold">{metrics.totalHoursWorked}h</p>
+              <p className="text-2xl font-bold">
+                {metrics.strictScheduleEnforcement 
+                  ? `${metrics.totalHoursWorked}/${+(metrics.expectedMinutesToday / 60).toFixed(1)}h` 
+                  : `${metrics.totalHoursWorked}h`}
+              </p>
             </div>
           </CardBody>
         </Card>
