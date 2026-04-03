@@ -1,7 +1,19 @@
 import { Building2, Router, Users } from "lucide-react";
+import connectDB from "@/config/db";
+import { Organization } from "@/models/Organization";
+import { Reader } from "@/models/Reader";
+import { User } from "@/models/User";
 
 export default async function AdminDashboardPage() {
-  // We'd typically fetch real stats here
+  await connectDB();
+
+  // Fetch real stats from database
+  const [totalOrgs, activeReaders, totalUsers] = await Promise.all([
+    Organization.countDocuments(),
+    Reader.countDocuments({ status: "active" }),
+    User.countDocuments()
+  ]);
+
   return (
     <section className="mb-10">
       <h3 className="text-[var(--color-carbon-black)] dark:text-gray-100 text-2xl font-bold mb-6">Resumen de la Plataforma</h3>
@@ -16,7 +28,7 @@ export default async function AdminDashboardPage() {
               <Building2 className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-4xl font-bold text-[var(--color-carbon-black)] dark:text-white">--</p>
+          <p className="text-4xl font-bold text-[var(--color-carbon-black)] dark:text-white">{totalOrgs}</p>
         </div>
 
         {/* Tarjeta 2 */}
@@ -28,7 +40,7 @@ export default async function AdminDashboardPage() {
               <Router className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-4xl font-bold text-[var(--color-carbon-black)] dark:text-white">--</p>
+          <p className="text-4xl font-bold text-[var(--color-carbon-black)] dark:text-white">{activeReaders}</p>
         </div>
 
         {/* Tarjeta 3 */}
@@ -40,7 +52,7 @@ export default async function AdminDashboardPage() {
               <Users className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-4xl font-bold text-[var(--color-carbon-black)] dark:text-white">--</p>
+          <p className="text-4xl font-bold text-[var(--color-carbon-black)] dark:text-white">{totalUsers}</p>
         </div>
       </div>
     </section>

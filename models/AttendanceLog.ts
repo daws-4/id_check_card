@@ -6,7 +6,7 @@ export interface IAttendanceLog extends Document {
   reader_id: mongoose.Types.ObjectId;
   timestamp: Date;
   type: 'entrada' | 'salida';
-  status?: 'on_time' | 'late' | 'early_leave' | 'overtime';
+  status?: 'on_time' | 'late' | 'early_leave' | 'overtime' | 'out_of_schedule';
   time_variance_minutes?: number;
 }
 
@@ -16,7 +16,7 @@ const AttendanceLogSchema: Schema = new Schema({
   reader_id: { type: Schema.Types.ObjectId, ref: 'Reader', required: true },
   timestamp: { type: Date, default: Date.now },
   type: { type: String, enum: ['entrada', 'salida'], required: true },
-  status: { type: String, enum: ['on_time', 'late', 'early_leave', 'overtime'] },
+  status: { type: String, enum: ['on_time', 'late', 'early_leave', 'overtime', 'out_of_schedule'] },
   time_variance_minutes: { type: Number },
 }, { timestamps: true });
 

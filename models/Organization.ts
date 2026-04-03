@@ -11,6 +11,9 @@ export interface IOrganization extends Document {
     cost_per_active_reader: number;
     currency: string;
   };
+  // Notification controls
+  notifications_enabled: boolean;
+  whatsapp_billing_enabled: boolean;
 }
 
 const OrganizationSchema: Schema = new Schema({
@@ -35,6 +38,9 @@ const OrganizationSchema: Schema = new Schema({
     cost_per_active_reader: { type: Number },
     currency: { type: String }
   },
+  // Notification controls (disabled by default)
+  notifications_enabled: { type: Boolean, default: false },
+  whatsapp_billing_enabled: { type: Boolean, default: false },
 }, { timestamps: true });
 
 export const Organization: Model<IOrganization> = mongoose.models.Organization || mongoose.model<IOrganization>('Organization', OrganizationSchema);

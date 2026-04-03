@@ -1,5 +1,11 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+export interface IEmergencyContact {
+  name: string;
+  phone: string;
+  relationship: string;
+}
+
 export interface IUser extends Document {
   name: string;
   last_name?: string;
@@ -17,6 +23,17 @@ export interface IUser extends Document {
   reset_token_expires?: Date;
   auth_providers?: string[];
   strict_schedule_enforcement: boolean;
+  // Notification channels (multi-select, opt-in)
+  // Students: can pick any combination of ['telegram', 'whatsapp', 'push', 'email']
+  // Non-students (workers/admins): can ONLY pick ['push'] or leave empty
+  notification_channels: string[];
+  telegram_chat_id?: string;
+  whatsapp_phone?: string;
+  push_device_token?: string;
+  // Emergency & public profile
+  emergency_contacts?: IEmergencyContact[];
+  photo_url?: string;
+  insurance_info?: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -48,6 +65,32 @@ const UserSchema: Schema = new Schema({
   reset_token_expires: { type: Date },
   auth_providers: { type: [String], default: [] },
   strict_schedule_enforcement: { type: Boolean, default: false },
+  // Notification channels - array allows multi-select. Empty array = disabled (opt-in)
+  notification_channels: {
+    type: [{ type: String, enum: ['telegram', 'whatsapp', 'push', 'email'] }],
+    default: [],
+    validate: {
+      validator: function(this: any, v: string[]) {
+        // Non-students can only have 'push' or empty
+        if (this.user_type !== 'student') {
+          return v.every((ch: string) => ch === 'push');
+        }
+        return true;
+      },
+      message: 'Los no-estudiantes solo pueden tener notificaciones push o ninguna'
+    }
+  },
+  telegram_chat_id: { type: String },
+  whatsapp_phone: { type: String },
+  push_device_token: { type: String },
+  // Emergency & public profile
+  emergency_contacts: [{
+    name: { type: String, required: true },
+    phone: { type: String, required: true },
+    relationship: { type: String, required: true },
+  }],
+  photo_url: { type: String },
+  insurance_info: { type: String },
 }, { timestamps: true });
 
 UserSchema.index({ email: 1, role: 1 }, { unique: true });

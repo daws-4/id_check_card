@@ -9,7 +9,7 @@ Secure-Pass-NFC es una plataforma centralizada integral (Web, Móvil y Hardware)
 - **n8n**: Plataforma de automatización de flujos de trabajo e integración de agentes de IA, funcionando funcionalmente como un backend alternativo e inteligente para notificaciones y tareas.
 - **React Native + Expo**: Para el desarrollo de la aplicación móvil multiplataforma (iOS y Android).
 - **ESP32 (programado en entorno Arduino) y Lectores NFC**: Hardware especializado para la lectura de las tarjetas RFID en los puntos de acceso físico.
-- **PocketBase**: Backend as a Service complementario (opcional/según surja la necesidad).
+- **PocketBase**: Backend as a Service utilizado como almacenamiento centralizado de imágenes (fotos de perfil, carnets) con acceso público para verificación QR.
 - **Resend y React Email**: Infraestructura moderna basada en API para el envío de correos transaccionales (invitaciones, recuperación de contraseñas) con plantillas dinámicas y responsivas construidas totalmente en React.
 
 ---
@@ -44,6 +44,38 @@ Secure-Pass-NFC es una plataforma centralizada integral (Web, Móvil y Hardware)
 - **Bloqueo Estricto de Horas Libres:** La arquitectura ha evolucionado para no solo medir *entrada y salida*, sino para cruzar dinámicamente dichos registros con la agenda trazada. Usando el toggle de "Horario Estricto" (`strict_schedule_enforcement`), los estudiantes y pasantes no pueden acumular horas ni sobreescribir sus recargos por tardanzas permaneciendo en tiempos neutros (ej. almuerzos), contabilizando matemática y exclusivamente la *intersección* de tiempo presencial vs tiempo planificado.
 - **Manejo Desacoplado de Tolerancias:** Incorporado el estatus silente `out_of_schedule`. Si ocurre un marcaje NFC más de 60 minutos aislado a cualquier horario, la red inteligente previene castigar ese marcaje aislándolo de métricas perjudiciales como *late* o *early_leave*.
 - **Controles Masivos (Bulk):** Integrados botones operacionales masivos (`+ Estricto` / `- Estricto`) a lo largo de las vistas administrativas.
+
+### 🔔 Motor de Notificaciones Multi-Canal
+- **Canales simultáneos:** Se reemplazó el modelo de canal único (`notification_preference: string`) por un sistema multi-selección (`notification_channels: string[]`). Un representante puede recibir la alerta de ingreso de su hijo por **Telegram y Push al mismo tiempo**, o cualquier combinación de canales.
+- **Canales disponibles:** `telegram` (gratuito), `whatsapp` (premium, requiere activación de facturación), `push` (notificación nativa de la app móvil, gratuito), `email`.
+- **Restricción por tipo de usuario:** Validación a nivel de esquema Mongoose: los estudiantes pueden elegir cualquier combinación de canales; los trabajadores/admins **solo pueden tener `push` o ninguno**. Si se intenta guardar un canal no permitido, MongoDB rechaza el documento.
+- **Opt-in obligatorio:** Todos los canales están vacíos por defecto (`[]`). Las notificaciones solo se activan si el representante o la organización las habilita explícitamente.
+- **Control dual:** La organización debe tener `notifications_enabled: true` para que sus usuarios reciban alertas. WhatsApp requiere adicionalmente `whatsapp_billing_enabled: true`.
+- **Dispatch fire-and-forget:** El endpoint de asistencia (`/api/attendance`) dispara las notificaciones de forma asíncrona sin bloquear la respuesta al ESP32, garantizando que un fallo en el servicio de notificaciones nunca impida registrar la asistencia.
+- **Integración con n8n:** El webhook interno (`/api/webhooks/notifications`) valida las reglas de negocio y despacha un payload con `channels[]` al webhook de n8n, que se encarga de rutear al servicio correspondiente.
+
+### 🪪 Perfil Digital Público (Ficha QR de Emergencia)
+- **Vista pública sin autenticación:** Al escanear el QR impreso en el dorso del carnet NFC (`/verify/[orgId]/[userId]`), cualquier persona (guardia, paramédico, docente) puede ver la ficha de emergencia del portador sin necesidad de login.
+- **Datos expuestos (controlados):** Nombre completo, foto de perfil, cédula, tipo de sangre, organización, información de seguro estudiantil, y contactos de emergencia con botón de **click-to-call** directo.
+- **Validación de pertenencia:** La API verifica que el usuario efectivamente pertenece a la organización indicada antes de mostrar datos. Si no hay membresía, retorna 404.
+- **UI premium:** Diseño dark glassmorphism optimizado para móvil con banner de verificación ("USUARIO VERIFICADO" / "CUENTA PENDIENTE"), avatar con gradiente, y secciones de datos médicos y contactos.
+
+### 📊 Suite de Reportes (Excel + PDF)
+- **Exportación Excel (XLSX):** Endpoint `/api/reports/excel` que genera archivos `.xlsx` con los registros de asistencia filtrados por organización, rango de fechas. Columnas auto-ajustadas, estados traducidos al español, límite de seguridad de 5000 registros. Librería: `xlsx`.
+- **Exportación PDF (Puppeteer):** Endpoint `/api/reports/pdf` que renderiza un reporte HTML profesional a PDF mediante Chrome headless (Puppeteer). Incluye dashboard de métricas (entradas totales, % de puntualidad, retrasos, salidas tempranas) y tabla detallada con badges de color por estado. Formato A4 paisaje.
+- **Vista de reportes mejorada:** La página de asistencia de organización (`/org/[orgId]/attendance`) fue reescrita con: cards de métricas de resumen, filtros de fecha (Desde/Hasta) para acotar las exportaciones, botones de descarga Excel y PDF con estados de carga, columnas de estado con colores y variación de tiempo con indicador visual (rojo = tarde, verde = temprano).
+
+### 📈 Tableros de Métricas en Tiempo Real (Dashboards)
+- **Panel Súper Administrador:** Conectado directamente a Mongoose (`app/admin/page.tsx`) para la obtención en vivo del total de organizaciones registradas, cantidad de lectores (ESP32) actualmente activos y el conteo poblacional global de usuarios en toda la plataforma.
+- **Panel de Organización:** La vista central por organización (`app/org/[orgId]/page.tsx`) realiza pre-agregaciones en servidor en base a las fechas actuales para reflejar con exactitud la cantidad de miembros activos asimilados y el conteo de asistencia del día en curso (limitado desde `00:00:00` a `23:59:59`). Adicionalmente incorpora una bandeja UI de lectura de 'Actividad Reciente' con logotipos de estado y descripciones instantáneas.
+
+### 📸 PocketBase como Storage de Imágenes
+- **Integración completa:** PocketBase (`images.enlaredve.com`) se utiliza como servicio de almacenamiento de archivos para fotos de perfil y carnets, eliminando la necesidad de almacenar imágenes en MongoDB o en el filesystem del servidor.
+- **Colección `user_photos`:** Almacena la foto vinculada al `mongo_user_id`, con soporte para múltiples tipos (`profile`, `carnet_front`, `carnet_back`), máximo 5MB, formatos jpg/png/webp.
+- **Acceso público para lectura:** Las fotos se sirven públicamente para que el perfil QR de emergencia pueda mostrar la imagen sin autenticación.
+- **Escritura protegida:** Solo el servidor (autenticado como superuser de PocketBase) puede subir, actualizar o eliminar fotos. Endpoint: `POST /api/pocketbase/upload`.
+- **Setup automático:** Endpoint `POST /api/pocketbase/setup` (solo superadmin) crea la colección `user_photos` en PocketBase si no existe. Se ejecuta una sola vez al configurar el sistema.
+- **Anti-duplicados:** Al subir una nueva foto de un tipo que ya existe para un usuario, se actualiza el registro existente en vez de crear uno nuevo.
 
 ### 📊 Estado de Usuarios y Gestión Mejorada
 - **Columna de Estado visible:** Las tablas de usuarios y administradores ahora muestran un badge de estado (`Activo` verde / `Pendiente` amarillo) para identificar rápidamente quiénes han completado su registro.
@@ -109,13 +141,17 @@ Aplicación móvil con funciones duales y uso avanzado de hardware:
 
 A continuación, se desglosan las fases en tareas accionables para facilitar el desarrollo:
 
-### 1. Base de Datos (MongoDB)
+### 1. Base de Datos (MongoDB + PocketBase)
 - [x] Configurar el cluster de MongoDB (ej. MongoDB Atlas) y obtener la URI de conexión.
 - [x] Crear el esquema `User` (ampliado con schema dinámico por rol, `document_id` con sparse index y validación V-/E-, índices cruzados email+role, campos `status`, `invite_token`, `reset_token`).
-- [x] Crear el esquema `Organization` (nombre, tipo, `tax_id` con validación J-, configuraciones básicas).
+- [x] Añadir campos de notificación multi-canal al esquema `User` (`notification_channels[]`, `telegram_chat_id`, `whatsapp_phone`, `push_device_token`) con validación por `user_type`.
+- [x] Añadir campos de perfil público al esquema `User` (`emergency_contacts[]`, `photo_url`, `insurance_info`).
+- [x] Crear el esquema `Organization` (nombre, tipo, `tax_id` con validación J-, `notifications_enabled`, `whatsapp_billing_enabled`).
 - [x] Crear el esquema `Membership` (user_id, organization_id, rol: admin/user).
 - [x] Crear el esquema `Reader` o `Device` (`esp32_id` único, organization_id referenciada, ubicación, estado).
-- [x] Crear el esquema `AttendanceLog` (user_id, organization_id, reader_id, timestamp, tipo: entrada/salida).
+- [x] Crear el esquema `AttendanceLog` (user_id, organization_id, reader_id, timestamp, tipo: entrada/salida, status con `out_of_schedule`).
+- [x] Configurar PocketBase (`images.enlaredve.com`) como storage de imágenes con colección `user_photos`.
+
 
 ### 2. Backend & API (Next.js)
 - [x] Configurar la conexión a MongoDB usando Mongoose.
@@ -132,6 +168,14 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [x] Crear endpoint `POST /api/auth/change-password` (cambio autenticado con jerarquía de permisos).
 - [x] Crear endpoint `POST /api/users/bulk` (acciones masivas: eliminar / asignar tarjeta NFC).
 - [x] Configurar "OAuth Invitado" con NextAuth (GoogleProvider) validando existencia en DB, interceptador de seguridad anti intrusos y con activador de perfiles automático.
+- [x] Crear webhook handler `POST /api/webhooks/notifications` (motor de notificaciones multi-canal con validación de reglas de negocio y dispatch a n8n).
+- [x] Inyectar trigger de notificaciones fire-and-forget en `POST /api/attendance` tras crear log exitoso.
+- [x] Crear endpoint `GET /api/reports/excel` (exportación Excel con filtros de fecha y organización, librería `xlsx`).
+- [x] Crear endpoint `GET /api/reports/pdf` (generación PDF con Puppeteer, métricas visuales y tabla detallada).
+- [x] Crear endpoint público `GET /api/verify/[orgId]/[userId]` (ficha de perfil QR sin autenticación).
+- [x] Crear endpoint `POST /api/pocketbase/setup` (provisión automática de colección `user_photos` en PocketBase).
+- [x] Crear endpoint `POST /api/pocketbase/upload` (subida de fotos a PocketBase con anti-duplicados y sincronización a MongoDB).
+- [x] Crear config `config/pocketbase.ts` (singleton PB con auth `_superusers` y helpers de URLs públicas).
 
 ### 3. Paneles Administrativos Web (Next.js)
 - [x] Desarrollar el **Panel Súper Administrador**: vistas para crear/editar organizaciones y dar de alta/reasignar IDs de lectores (`esp32_id`).
@@ -148,8 +192,11 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 
 ### 4. Automatizaciones (n8n)
 - [x] Configurar una instancia de n8n (local o cloud).
-- [ ] Modificar el endpoint `POST /api/attendance` de Next.js para enviar un Webhook a n8n después de registrar un log válido.
-- [ ] Crear un workflow en n8n que reciba el Webhook y envíe una alerta (ej. un correo de prueba o mensaje de Telegram/WhatsApp) informando la entrada/salida.
+- [x] Modificar el endpoint `POST /api/attendance` de Next.js para enviar un Webhook a n8n después de registrar un log válido (implementado como fire-and-forget via `/api/webhooks/notifications`).
+- [ ] Crear un workflow en n8n que reciba el Webhook y rutee según `channels[]` a Telegram (Bot API), WhatsApp (Meta Cloud API), Push y/o Email.
+- [ ] Configurar el bot de Telegram y obtener el token de la BotFather.
+- [ ] Configurar la cuenta de WhatsApp Business y las credenciales de Meta Cloud API.
+- [ ] Crear flujo de registro de `telegram_chat_id` (el representante envía `/start` al bot y se vincula con su cuenta).
 
 ### 5. Hardware (ESP32)
 - [x] Instalar librerías necesarias en Arduino IDE (WiFi, HTTPClient, MFRC522 para RFID).
@@ -192,6 +239,10 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [x] Asignar horarios a los grupos (con títulos de materias, clases o actividades).
 - [x] Asignar tareas a los grupos, ya sean con fecha límite o repetitivas (una vez a la semana, al mes o al año).
 - [x] Registrar la hora de paso por algún lector y asociar lectores a la organización en general o dedicarlos a un grupo en específico.
+- [x] Visualizar reportes de asistencia con cards de métricas (entradas, salidas, puntualidad, retrasos), filtros de fecha y columnas de estado con variación de tiempo.
+- [x] Exportar reportes de asistencia a Excel (.xlsx) y PDF (Puppeteer) desde la vista de reportes.
+- [ ] Configurar notificaciones por organización (habilitar/deshabilitar, activar facturación WhatsApp).
+- [ ] Subir fotos de estudiantes/trabajadores desde el panel de miembros (integrado con PocketBase).
 > **Nota para Web:** Para la versión web se deben añadir a futuro aún más opciones y métricas de análisis que las indicadas en esta versión esencial.
 
 ### PANEL DE USUARIO (Normal / Líder de Grupo)
@@ -267,7 +318,8 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [ ] **Badge de estado en tabla**: Verificar visualización correcta de `Activo`/`Pendiente`.
 - [ ] **Acción contextual de reenvío**: Verificar que solo aparece "Reenviar Invitación" para admins `pending`.
 
-### Gestión de Organizaciones
+### Gestión de Organizaciones (Panel Súper Admin)
+- [ ] **Dashboard Súper Admin**: Verificar que las métricas totales de cuenta (Organizaciones, Lectores Activos, Total Usuarios) concuerdan con la cantidad real en base de datos.
 - [ ] **Crear organización**: Verificar nombre, tipo (14 categorías) y RIF.
 - [ ] **Validación de RIF**: Verificar que solo acepta formato `J-12345` y rechaza formatos inválidos.
 - [ ] **Editar organización**: Modificar campos y verificar persistencia.
@@ -275,7 +327,8 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [ ] **Acceso al panel de org**: Verificar que "Ver Panel" redirige correctamente a `/org/[orgId]`.
 
 ### Panel de Organización
-- [ ] **Dashboard con métricas**: Verificar que carga correctamente los datos de la organización.
+- [ ] **Dashboard con métricas reales**: Verificar que "Miembros Activos" cuenta solo los miembros de la org actual y "Asistencia Hoy" cuenta solo `entradas` del día actual.
+- [ ] **Actividad Reciente**: Verificar que se muestran los 5 registros de asistencia más recientes con su usuario y lector correspondientes.
 - [ ] **Gestión de miembros**: Probar el autocompletado de búsqueda por nombre, cédula y correo.
 - [ ] **Crear grupos**: Verificar creación de grupos de estudio y trabajo.
 - [ ] **Asignar líderes**: Verificar asignación y permisos resultantes.
@@ -311,6 +364,44 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [ ] **Performance de API**: Verificar tiempos de respuesta aceptables (< 500ms) en endpoints principales.
 - [ ] **Paginación**: Verificar que listas largas no degradan rendimiento.
 
+### Notificaciones Multi-Canal
+- [ ] **Setup de n8n**: Verificar que `N8N_NOTIFICATION_WEBHOOK_URL` está configurada y que n8n recibe los payloads correctamente.
+- [ ] **Regla: multi-canal estudiantes**: Crear un estudiante con `notification_channels: ['telegram', 'push']` y verificar que al registrar asistencia se envían ambos canales en el payload a n8n.
+- [ ] **Regla: workers solo push**: Intentar guardar `notification_channels: ['telegram']` en un worker y verificar que Mongoose rechaza la operación con error de validación.
+- [ ] **Regla: opt-in (vacío por defecto)**: Verificar que un usuario recién creado tiene `notification_channels: []` y que el webhook retorna `skipped: true`.
+- [ ] **Regla: org deshabilitada**: Poner `notifications_enabled: false` en la org y verificar que el webhook retorna `skipped: true` aunque el usuario tenga canales activos.
+- [ ] **Regla: WhatsApp sin billing**: Poner `whatsapp_billing_enabled: false` en la org y un estudiante con `['whatsapp']`, verificar que WhatsApp se filtra del dispatch.
+- [ ] **Fire-and-forget**: Verificar que una falla en el webhook de notificaciones no impide la respuesta 201 del endpoint de asistencia.
+- [ ] **Payload completo**: Verificar que el payload enviado a n8n incluye `channels[]`, `message`, `recipient` (con todos los campos) y `metadata`.
+
+### Perfil Digital QR (Verificación Pública)
+- [ ] **Acceso sin login**: Abrir `/verify/[orgId]/[userId]` sin sesión iniciada y verificar que carga correctamente.
+- [ ] **Datos correctos**: Verificar que muestra nombre, cédula, tipo de sangre, organización y contactos de emergencia.
+- [ ] **Click-to-call**: Verificar que los contactos de emergencia tienen links `tel:` funcionales.
+- [ ] **Usuario inexistente**: Acceder con un `userId` inválido y verificar que retorna error 404 con UI de "Verificación Fallida".
+- [ ] **Usuario sin membresía**: Acceder con un `userId` válido pero `orgId` donde no tiene membresía, verificar 404.
+- [ ] **Banner de estado**: Verificar que usuarios `active` muestran "USUARIO VERIFICADO" (verde) y `pending` muestran "CUENTA PENDIENTE" (amarillo).
+- [ ] **Foto de perfil**: Subir una foto via PocketBase y verificar que aparece en el perfil QR.
+
+### Suite de Reportes (Excel + PDF)
+- [ ] **Exportación Excel básica**: Descargar Excel desde la vista de reportes sin filtros y verificar que contiene todos los registros con columnas correctas.
+- [ ] **Exportación Excel con filtros**: Aplicar rango de fechas y verificar que el Excel solo contiene registros del rango.
+- [ ] **Exportación PDF básica**: Descargar PDF y verificar que incluye las métricas de resumen y la tabla de registros.
+- [ ] **Exportación PDF con filtros**: Aplicar rango de fechas y verificar que el PDF refleja los filtros.
+- [ ] **Límite de seguridad**: Verificar que Excel no exporta más de 5000 registros.
+- [ ] **Nombre del archivo**: Verificar que el nombre incluye la organización y el rango de fechas.
+- [ ] **Puppeteer en producción**: Verificar que Puppeteer funciona correctamente en el entorno de despliegue (Docker/Coolify). Nota: puede requerir configuración específica de Chrome headless.
+
+### PocketBase (Storage de Imágenes)
+- [ ] **Conexión a PocketBase**: Verificar que `getPbAdmin()` autentica correctamente con las credenciales de `_superusers` en `images.enlaredve.com`.
+- [ ] **Setup de colección**: Ejecutar `POST /api/pocketbase/setup` y verificar que la colección `user_photos` se crea en PocketBase con los campos y reglas correctas.
+- [ ] **Setup idempotente**: Ejecutar el setup dos veces y verificar que la segunda vez retorna `created: false` sin error.
+- [ ] **Subida de foto**: Subir una foto via `POST /api/pocketbase/upload` y verificar que el registro se crea en PocketBase y `photo_url` se actualiza en MongoDB.
+- [ ] **Actualización de foto**: Subir una segunda foto del mismo tipo para el mismo usuario y verificar que actualiza el registro existente (no crea duplicado).
+- [ ] **Acceso público**: Verificar que la URL generada (`https://images.enlaredve.com/api/files/user_photos/...`) es accesible sin autenticación.
+- [ ] **Permisos**: Verificar que solo `org_admin` y `superadmin` pueden subir fotos (usuarios normales reciben 403).
+- [ ] **Validación de formato**: Intentar subir un archivo no permitido (ej. `.pdf`) y verificar que PocketBase lo rechaza.
+
 ---
 
 ## 🔮 Futuras Implementaciones
@@ -332,8 +423,8 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [ ] Emulación NFC completa (HCE) para usar el celular como tarjeta.
 
 ### 📊 Analytics y Reportería Avanzada
+- [x] Exportación de reportes a PDF/Excel (implementado con `xlsx` + Puppeteer).
 - [ ] Dashboard de analytics con gráficos interactivos (asistencia por período, tendencias, anomalías).
-- [ ] Exportación de reportes a PDF/Excel.
 - [ ] Alertas configurables (ej. notificar si un empleado llega tarde 3 veces consecutivas).
 - [ ] Comparativas entre grupos/departamentos.
 
@@ -351,7 +442,20 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [ ] Cifrado de datos sensibles en reposo.
 
 ### 🤖 Automatizaciones e IA
-- [ ] Completar integración de n8n con webhooks de asistencia.
+- [x] Integrar webhook de asistencia con n8n (implementado como fire-and-forget en `/api/webhooks/notifications`).
+- [ ] Completar workflows de n8n para ruteo multi-canal (Telegram Bot, WhatsApp Cloud API, Push, Email).
 - [ ] Chatbot de IA para consultas rápidas de asistencia y métricas.
 - [ ] Detección de patrones anómalos en asistencia con Machine Learning.
 - [ ] Generación automática de informes semanales por organización.
+
+### 🎭 Carnetización y Logística Física
+- [ ] Diseño de plantilla de carnet NFC con QR dinámico (`/verify/[orgId]/[userId]`) en el dorso.
+- [ ] Alianza con proveedores de impresión PVC RFID para ofrecer servicio completo de carnetización.
+- [ ] Integración de venta de hardware (lectores ESP32 pre-configurados) como parte del servicio "llave en mano".
+- [ ] Panel de pedidos de carnets con seguimiento de estado (pendiente, impreso, entregado).
+
+### 📱 Frontend de Configuración de Notificaciones
+- [ ] Crear interfaz en panel de org para habilitar/deshabilitar notificaciones y activar facturación WhatsApp.
+- [ ] Crear interfaz en panel de usuario/representante para seleccionar canales de notificación y vincular Telegram/WhatsApp.
+- [ ] Crear componente de upload de foto en el panel de miembros de organización (con previsualización y crop).
+- [ ] Crear formulario de contactos de emergencia en el perfil de usuario.

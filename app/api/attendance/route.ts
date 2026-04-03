@@ -184,6 +184,30 @@ export async function POST(req: Request) {
 
     const newLog = await AttendanceLog.create(logData);
 
+    // 7. Fire notification webhook (fire-and-forget, don't block ESP32 response)
+    try {
+      const baseUrl = req.headers.get('host') ? `${req.headers.get('x-forwarded-proto') || 'http'}://${req.headers.get('host')}` : '';
+      if (baseUrl) {
+        fetch(`${baseUrl}/api/webhooks/notifications`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: user_id.toString(),
+            organization_id: organization_id.toString(),
+            event_type: type,
+            timestamp: newLog.timestamp || new Date().toISOString(),
+            status: status || undefined,
+            time_variance_minutes: time_variance_minutes ?? undefined,
+          }),
+        }).catch((notifErr: any) => {
+          console.error('[Attendance] Notification dispatch failed (non-blocking):', notifErr.message);
+        });
+      }
+    } catch (notifError) {
+      // Notifications are best-effort; never fail the attendance log
+      console.error('[Attendance] Notification setup error:', notifError);
+    }
+
     return NextResponse.json(
       { 
         message: 'Attendance logged successfully', 

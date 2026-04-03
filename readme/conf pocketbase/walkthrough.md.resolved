@@ -1,0 +1,149 @@
+# Walkthrough: Plan Estratégico "Id_CheckCard Superior"
+
+## Resumen
+
+Se implementaron las 4 fases del plan + integración PocketBase para almacenamiento de imágenes. Todos los archivos compilan sin errores de TypeScript (`exit code 0`).
+
+---
+
+## Correcciones Aplicadas (Feedback del Usuario)
+
+### 1. Notificaciones Multi-Canal
+
+Se cambió `notification_preference` (string único) → `notification_channels` (array de strings).
+
+**Antes:** Un usuario solo podía elegir UN canal.
+**Ahora:** Un estudiante puede elegir `['telegram', 'push']` o `['whatsapp', 'email', 'push']` o cualquier combinación.
+
+```diff
+- notification_preference: 'telegram' | 'whatsapp' | 'push' | 'email' | 'none'
++ notification_channels: string[]  // ['telegram', 'whatsapp', 'push', 'email'] - multi-select
+```
+
+### 2. Restricción por Tipo de Usuario
+
+| Tipo | Canales Permitidos |
+|------|-------------------|
+| **Estudiante** (`student`) | `telegram`, `whatsapp`, `push`, `email` (cualquier combinación) |
+| **Trabajador** (`worker`) | Solo `push` o ninguno (`[]`) |
+| **Admin** (`org_admin`, `superadmin`) | Solo `push` o ninguno (`[]`) |
+
+> [!IMPORTANT]
+> Esta validación se implementó a nivel de **Mongoose schema validator** en `User.ts`. Si alguien intenta guardar `['telegram']` en un usuario de tipo `worker`, MongoDB rechazará el documento con error de validación.
+
+---
+
+## Integración PocketBase (Almacenamiento de Fotos)
+
+### Arquitectura
+
+```mermaid
+graph LR
+    Admin["Panel Admin/Org"] -->|FormData con foto| Upload["/api/pocketbase/upload"]
+    Upload -->|SDK PocketBase| PB["PocketBase<br/>images.enlaredve.com"]
+    Upload -->|Guarda photo_url| MongoDB
+    QR["Perfil QR Público"] -->|Lee photo_url| PB
+```
+
+### Colección PocketBase requerida: `user_photos`
+
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `id` | text (auto) | ✅ | ID autogenerado por PB |
+| `mongo_user_id` | text | ✅ | El `_id` del usuario en MongoDB |
+| `photo` | file | ✅ | Archivo de imagen (jpg, png, webp, max 5MB) |
+| `photo_type` | text | ❌ | `'profile'` / `'carnet_front'` / `'carnet_back'` |
+| `organization_id` | text | ❌ | ID de la org en MongoDB (contexto) |
+| `created` | autodate | ✅ | Fecha de creación (auto) |
+| `updated` | autodate | ✅ | Fecha de actualización (auto) |
+
+**Reglas de acceso:**
+- `listRule` / `viewRule`: `""` (público, para que el QR pueda leer las fotos sin auth)
+- `createRule` / `updateRule` / `deleteRule`: `null` (solo superuser server-side)
+
+### Archivos creados
+
+| Archivo | Propósito |
+|---------|-----------|
+| [config/pocketbase.ts](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/config/pocketbase.ts) | Singleton PB con auth `_superusers`, helper de URLs públicas |
+| [api/pocketbase/setup/route.ts](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/app/api/pocketbase/setup/route.ts) | Crea la colección `user_photos` en PB (ejecutar **1 sola vez**) |
+| [api/pocketbase/upload/route.ts](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/app/api/pocketbase/upload/route.ts) | Sube foto vía FormData, evita duplicados, guarda URL en MongoDB |
+
+### Cómo usar
+
+**Paso 1:** Provisionar la colección (solo una vez):
+```bash
+curl -X POST http://localhost:3000/api/pocketbase/setup
+# (Requiere sesión de superadmin activa)
+```
+
+**Paso 2:** Subir una foto desde el frontend:
+```javascript
+const formData = new FormData();
+formData.append('photo', fileInput.files[0]);
+formData.append('user_id', '665a1b2c3d4e5f6a7b8c9d0e');
+formData.append('photo_type', 'profile');
+formData.append('organization_id', '665a1b2c...');
+
+const res = await fetch('/api/pocketbase/upload', {
+  method: 'POST',
+  body: formData,
+});
+// → { photo_url: "https://images.enlaredve.com/api/files/user_photos/abc123/photo.jpg" }
+```
+
+---
+
+## Archivos Modificados/Creados
+
+### Modelos
+| Archivo | Cambio |
+|---------|--------|
+| [User.ts](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/models/User.ts) | `notification_channels` (array), validación por `user_type`, campos `photo_url`, `emergency_contacts`, `insurance_info` |
+| [AttendanceLog.ts](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/models/AttendanceLog.ts) | `out_of_schedule` añadido al enum |
+| [Organization.ts](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/models/Organization.ts) | `notifications_enabled`, `whatsapp_billing_enabled` |
+
+### Perfil QR Público
+| Archivo | Cambio |
+|---------|--------|
+| [api/verify route](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/app/api/verify/%5BorgId%5D/%5BuserId%5D/route.ts) | Endpoint público sin auth |
+| [verify page](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/app/verify/%5BorgId%5D/%5BuserId%5D/page.tsx) | Vista dark glassmorphism con click-to-call |
+
+### Notificaciones
+| Archivo | Cambio |
+|---------|--------|
+| [webhooks/notifications](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/app/api/webhooks/notifications/route.ts) | Multi-canal: `channels[]` en vez de `channel` |
+| [attendance/route.ts](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/app/api/attendance/route.ts) | Trigger fire-and-forget inyectado |
+
+### Reportes
+| Archivo | Cambio |
+|---------|--------|
+| [reports/excel](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/app/api/reports/excel/route.ts) | Exportación XLSX con filtros |
+| [reports/pdf](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/app/api/reports/pdf/route.ts) | PDF con Puppeteer + métricas |
+| [attendance page](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/app/org/%5BorgId%5D/attendance/page.tsx) | Botones Excel/PDF, cards métricas, filtros de fecha |
+
+### PocketBase
+| Archivo | Cambio |
+|---------|--------|
+| [config/pocketbase.ts](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/config/pocketbase.ts) | Singleton + helpers |
+| [api/pocketbase/setup](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/app/api/pocketbase/setup/route.ts) | Provisiona colección `user_photos` |
+| [api/pocketbase/upload](file:///c:/Users/USUARIO/Desktop/proyectos/Id_CheckCard/web/app/api/pocketbase/upload/route.ts) | Sube fotos + guarda URL en MongoDB |
+
+---
+
+## Variables de Entorno Requeridas (Nuevas)
+
+```env
+# PocketBase (Almacenamiento de imágenes)
+PB_ADMIN_EMAIL='casaos@admin.local'
+PB_ADMIN_PASS='adminpocketbase'
+NEXT_PUBLIC_PB_URL='https://images.enlaredve.com'
+
+# n8n (Notificaciones)
+N8N_NOTIFICATION_WEBHOOK_URL=https://tu-n8n.com/webhook/xxx
+```
+
+## Verificación
+- ✅ TypeScript compila sin errores
+- ✅ Dependencias instaladas: `pocketbase`, `xlsx`, `puppeteer`
+- ✅ Modelo User validado con restricción de canales por tipo de usuario
