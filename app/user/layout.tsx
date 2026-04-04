@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import LogoutButton from "@/components/LogoutButton";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Nfc, LayoutDashboard, Calendar, ListChecks, BarChart3, UserCircle, Building2 } from "lucide-react";
 
 export default function UserLayout({ children }: { children: ReactNode }) {
@@ -20,9 +21,9 @@ export default function UserLayout({ children }: { children: ReactNode }) {
   ];
 
   return (
-    <div className="bg-[var(--color-lavender-mist)] flex h-screen overflow-hidden text-[var(--color-carbon-black)]">
+    <div className="bg-[var(--color-lavender-mist)] dark:bg-zinc-950 flex h-screen overflow-hidden text-[var(--color-carbon-black)] dark:text-gray-100">
       {/* Sidebar */}
-      <aside className="w-64 bg-[var(--color-carbon-black)] flex flex-col justify-between shadow-xl z-20">
+      <aside className="w-64 bg-[var(--color-carbon-black)] dark:bg-zinc-900 flex flex-col justify-between shadow-xl z-20">
         <div>
           <div className="p-6">
             <h1 className="text-[var(--color-tropical-teal)] text-2xl font-bold tracking-wide flex items-center gap-2">
@@ -76,13 +77,14 @@ export default function UserLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[var(--color-lavender-mist)]">
-        <header className="bg-white px-8 py-5 shadow-sm border-b border-gray-100 z-10 flex items-center justify-between">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[var(--color-lavender-mist)] dark:bg-zinc-950">
+        <header className="bg-white dark:bg-zinc-900 px-8 py-5 shadow-sm border-b border-gray-100 dark:border-white/10 z-10 flex items-center justify-between">
           <h2 className="text-[var(--color-tropical-teal)] text-xl font-bold flex items-center gap-2">
             Mi Panel
           </h2>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500">Bienvenido</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">Bienvenido</span>
+            <ThemeSwitcher />
           </div>
         </header>
 
@@ -93,3 +95,4 @@ export default function UserLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
+

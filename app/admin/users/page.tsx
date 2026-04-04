@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/modal";
 import { Input } from "@heroui/input";
@@ -8,7 +9,8 @@ import { Select, SelectItem } from "@heroui/select";
 import { Spinner } from "@heroui/spinner";
 import { Button } from "@heroui/button";
 import { Checkbox } from "@heroui/checkbox";
-import { Plus, MoreVertical, Trash, CreditCard, Mail } from "lucide-react";
+import { Pagination } from "@heroui/pagination";
+import { Plus, MoreVertical, Trash, CreditCard, Mail, Search } from "lucide-react";
 
 interface User {
   _id: string;
@@ -55,21 +57,33 @@ export default function UsersPage() {
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [isBulkLoading, setIsBulkLoading] = useState(false);
 
+  // Pagination & Search State
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(15);
+  const [search, setSearch] = useState("");
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
   // Resend invite state
   const [resendingUserId, setResendingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
+  }, [page, limit, search]);
+
+  useEffect(() => {
     fetchOrganizations();
   }, []);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/users?type=users");
+      const res = await fetch(`/api/users?type=users&page=${page}&limit=${limit}&search=${search}`);
       if (res.ok) {
         const data = await res.json();
-        setUsers(data);
+        setUsers(data.users);
+        setTotal(data.total);
+        setTotalPages(data.pages);
       }
     } catch (error) {
       console.error("Failed to fetch users", error);
@@ -252,7 +266,7 @@ export default function UsersPage() {
   return (
     <section>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h3 className="text-[var(--color-carbon-black)] text-2xl font-bold">Usuarios Globales</h3>
+        <h3 className="text-[var(--color-carbon-black)] dark:text-white text-2xl font-bold">Usuarios Globales</h3>
         <div className="flex items-center gap-2">
           {selectedUserIds.size > 0 && (
             <>
@@ -272,9 +286,28 @@ export default function UsersPage() {
               </Button>
             </>
           )}
+          <Input 
+            placeholder="Buscar por nombre, email, cédula..." 
+            startContent={<Search className="w-4 h-4 text-gray-400" />}
+            value={search}
+            onValueChange={(v) => { setSearch(v); setPage(1); }}
+            className="w-full md:w-72"
+            size="sm"
+            variant="bordered"
+          />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 whitespace-nowrap">Mostrar:</span>
+            <select 
+              className="bg-transparent border border-divider rounded-lg text-xs p-1 cursor-pointer"
+              value={limit}
+              onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+            >
+              {[15, 30, 50, 100].map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
           <button 
             onClick={() => handleOpenModal()}
-            className="bg-[var(--color-electric-sapphire)] hover:bg-blue-600 text-white font-medium px-5 py-2.5 rounded-xl shadow-md shadow-[var(--color-electric-sapphire)]/30 transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer"
+            className="bg-[var(--color-electric-sapphire)] hover:bg-blue-600 text-white font-medium px-5 py-2.5 rounded-xl shadow-md shadow-[var(--color-electric-sapphire)]/30 transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             Agregar Usuario
@@ -282,11 +315,11 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-[#1a1b1e] rounded-2xl shadow-sm border border-gray-100 dark:border-default-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
-              <tr className="bg-[var(--color-lavender-mist)]/50 border-b border-gray-100">
+              <tr className="bg-[var(--color-lavender-mist)]/50 dark:bg-default-50/50 border-b border-gray-100 dark:border-default-100">
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider w-12">
                   <Checkbox 
                     isSelected={users.length > 0 && selectedUserIds.size === users.length} 
@@ -302,7 +335,7 @@ export default function UsersPage() {
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-default-100">
               {loading ? (
                 <tr>
                   <td colSpan={8} className="py-8 text-center">
@@ -317,7 +350,7 @@ export default function UsersPage() {
                 </tr>
               ) : (
                 users.map((user, idx) => (
-                  <tr key={user._id} className="hover:bg-[var(--color-lavender-mist)]/30 transition-colors group">
+                  <tr key={user._id} className="hover:bg-[var(--color-lavender-mist)]/30 dark:hover:bg-default-100 transition-colors group">
                     <td className="py-4 px-6">
                       <Checkbox 
                         isSelected={selectedUserIds.has(user._id)} 
@@ -330,7 +363,9 @@ export default function UsersPage() {
                           {getInitials(user.name)}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-semibold text-[var(--color-carbon-black)]">{user.name} {user.last_name || ""}</span>
+                          <Link href={`/admin/user/${user._id}`} className="font-semibold text-[var(--color-carbon-black)] dark:text-white hover:text-[var(--color-maya-blue)] dark:hover:text-[var(--color-maya-blue)] transition-colors">
+                            {user.name} {user.last_name || ""}
+                          </Link>
                           {user.birth_date && <span className="text-xs text-gray-400 font-medium tracking-wide">Nac: {new Date(user.birth_date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span>}
                         </div>
                       </div>
@@ -355,12 +390,14 @@ export default function UsersPage() {
                     <td className="py-4 px-6 text-right">
                       <Dropdown>
                         <DropdownTrigger>
-                          <button className="p-2 text-gray-400 hover:text-[var(--color-tropical-teal)] transition-colors rounded-lg hover:bg-[var(--color-tropical-teal)]/10 cursor-pointer">
+                          <button className="p-2 text-gray-400 hover:text-[var(--color-tropical-teal)] dark:hover:text-white transition-colors rounded-lg hover:bg-[var(--color-tropical-teal)]/10 dark:hover:bg-default-200 cursor-pointer">
                             <MoreVertical className="w-5 h-5" />
                           </button>
                         </DropdownTrigger>
                         <DropdownMenu aria-label="Acciones">
-                          <DropdownItem key="edit" onPress={() => handleOpenModal(user)}>Editar</DropdownItem>
+                          <DropdownItem key="view" href={`/admin/user/${user._id}`}>Ver Detalles</DropdownItem>
+                          <DropdownItem key="qr" href={`/admin/user/${user._id}#qr`}>Perfil QR</DropdownItem>
+                          <DropdownItem key="edit" onPress={() => handleOpenModal(user)}>Editar Rápido</DropdownItem>
                           {user.status === 'pending' ? (
                             <DropdownItem 
                               key="resend" 
@@ -382,6 +419,21 @@ export default function UsersPage() {
               )}
             </tbody>
           </table>
+        </div>
+        
+        {/* Pagination */}
+        <div className="p-4 border-t border-gray-100 dark:border-default-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-50/30 dark:bg-default-50/10">
+          <p className="text-sm text-gray-500">Mostrando {users.length} de {total} usuarios</p>
+          <Pagination
+            total={totalPages}
+            initialPage={1}
+            page={page}
+            onChange={(p) => setPage(p)}
+            showControls
+            color="primary"
+            variant="flat"
+            size="sm"
+          />
         </div>
       </div>
 
@@ -480,13 +532,14 @@ export default function UsersPage() {
                   <Select 
                     label="Rol" 
                     variant="bordered" 
-                    selectedKeys={[role]}
+                    selectedKeys={new Set([role])}
                     onChange={(e) => setRole(e.target.value)}
                     isDisabled={true}
                   >
                     <SelectItem key="user">Usuario normal</SelectItem>
                   </Select>
                   <Input 
+                    isRequired
                     label="Correo" 
                     type="email"
                     placeholder="Ingresa el correo" 

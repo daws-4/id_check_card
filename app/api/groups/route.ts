@@ -14,15 +14,34 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const organization_id = searchParams.get("organization_id");
+    const search = searchParams.get("search");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "15");
+    const skip = (page - 1) * limit;
 
     if (!organization_id || !mongoose.Types.ObjectId.isValid(organization_id)) {
       return NextResponse.json({ error: "Invalid or missing organization_id" }, { status: 400 });
     }
 
     await connectDB();
-    const groups = await Group.find({ organization_id }).sort({ createdAt: -1 });
+    
+    let query: any = { organization_id };
+    if (search) {
+      query.name = { $regex: search, $options: "i" };
+    }
 
-    return NextResponse.json(groups);
+    const total = await Group.countDocuments(query);
+    const groups = await Group.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    return NextResponse.json({
+      groups,
+      total,
+      pages: Math.ceil(total / limit),
+      currentPage: page
+    });
   } catch (error) {
     console.error("Error fetching groups:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

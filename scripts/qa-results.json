@@ -1,0 +1,207 @@
+{
+  "passed": 40,
+  "failed": 0,
+  "total": 40,
+  "results": [
+    {
+      "test": "Crear usuario Alexandra",
+      "ok": true,
+      "detail": "201"
+    },
+    {
+      "test": "Editar usuario",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "test": "Persistencia edicion",
+      "ok": true,
+      "detail": "Alexandra Maria"
+    },
+    {
+      "test": "Bulk assign NFC",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "test": "Bulk NFC verified",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "test": "Bulk enable strict",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "test": "Bulk strict verified",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "test": "Bulk disable strict",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "test": "Bulk delete",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "test": "Bulk delete verified",
+      "ok": true,
+      "detail": "remaining: 0"
+    },
+    {
+      "test": "Delete individual",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "test": "Delete verified",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "test": "Crear org_admin",
+      "ok": true,
+      "detail": "201"
+    },
+    {
+      "test": "org_admin sin org -> 400",
+      "ok": true,
+      "detail": "400"
+    },
+    {
+      "test": "Crear superadmin sin org",
+      "ok": true,
+      "detail": "201"
+    },
+    {
+      "test": "Crear org temporal",
+      "ok": true,
+      "detail": "201"
+    },
+    {
+      "test": "Editar org",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "test": "Edicion org persistida",
+      "ok": true,
+      "detail": "OrgEditada"
+    },
+    {
+      "test": "Eliminar org",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "test": "Org eliminada verified",
+      "ok": true,
+      "detail": "404"
+    },
+    {
+      "test": "ESP32 entrada 201",
+      "ok": true,
+      "detail": "201"
+    },
+    {
+      "test": "ESP32 type=entrada",
+      "ok": true,
+      "detail": "entrada"
+    },
+    {
+      "test": "ESP32 salida 201",
+      "ok": true,
+      "detail": "201"
+    },
+    {
+      "test": "ESP32 type=salida",
+      "ok": true,
+      "detail": "salida"
+    },
+    {
+      "test": "ESP32 unknown card 404",
+      "ok": true,
+      "detail": "404"
+    },
+    {
+      "test": "ESP32 maintenance 403",
+      "ok": true,
+      "detail": "403"
+    },
+    {
+      "test": "ESP32 no membership 403",
+      "ok": true,
+      "detail": "403"
+    },
+    {
+      "test": "ESP32 relocation 201",
+      "ok": true,
+      "detail": "201"
+    },
+    {
+      "test": "ESP32 reloc correct org",
+      "ok": true,
+      "detail": "69d02ca76224557f5ca4087d vs 69d02ca76224557f5ca4087d"
+    },
+    {
+      "test": "Notif opt-in vacio skipped",
+      "ok": true,
+      "detail": "true"
+    },
+    {
+      "test": "Notif org disabled skipped",
+      "ok": true,
+      "detail": "true"
+    },
+    {
+      "test": "Notif multichannel dispatched",
+      "ok": true,
+      "detail": "false"
+    },
+    {
+      "test": "Notif has channels[]",
+      "ok": true,
+      "detail": "[\"push\",\"telegram\"]"
+    },
+    {
+      "test": "Worker telegram rejected",
+      "ok": true,
+      "detail": "ValidationError"
+    },
+    {
+      "test": "WhatsApp no billing skipped",
+      "ok": true,
+      "detail": "true"
+    },
+    {
+      "test": "Fire-and-forget (attendance OK despite no n8n)",
+      "ok": true,
+      "detail": "already OK"
+    },
+    {
+      "test": "Perf /users?type=users <500ms",
+      "ok": true,
+      "detail": "95ms"
+    },
+    {
+      "test": "Perf /organizations <500ms",
+      "ok": true,
+      "detail": "98ms"
+    },
+    {
+      "test": "Perf /attendance <500ms",
+      "ok": true,
+      "detail": "170ms"
+    },
+    {
+      "test": "Perf /readers <500ms",
+      "ok": true,
+      "detail": "165ms"
+    }
+  ]
+}

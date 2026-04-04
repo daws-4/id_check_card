@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Divider } from "@heroui/divider";
 import { Mail, CheckCircle, ArrowLeft } from "lucide-react";
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
+  const searchParams = useSearchParams();
+  const portalType = searchParams.get("portal") || "user";
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -22,7 +25,7 @@ export default function ForgotPasswordPage() {
       await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, portalType }),
       });
       // Siempre mostrar éxito sin importar si el email existe
       setSent(true);
@@ -40,7 +43,7 @@ export default function ForgotPasswordPage() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-[var(--color-maya-blue)] to-[var(--color-tropical-teal)] bg-clip-text text-transparent">
             Secure Pass
           </h1>
-          <p className="text-sm text-[var(--color-lavender-mist)]/70 mt-2">Recuperar Contraseña</p>
+          <p className="text-sm text-[var(--color-lavender-mist)]/70 mt-2">Recuperar Contraseña {portalType === 'admin' ? '(Admin)' : ''}</p>
         </CardHeader>
         <Divider className="bg-divider/5" />
         <CardBody className="p-8">
@@ -65,7 +68,7 @@ export default function ForgotPasswordPage() {
                   Enviar a otro correo
                 </Button>
                 <a
-                  href="/login"
+                  href={portalType === 'admin' ? "/admin-login" : "/login"}
                   className="flex items-center justify-center gap-2 text-sm text-[var(--color-lavender-mist)]/70 hover:text-white transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -109,7 +112,7 @@ export default function ForgotPasswordPage() {
                 Enviar Enlace de Recuperación
               </Button>
               <a
-                href="/login"
+                href={portalType === 'admin' ? "/admin-login" : "/login"}
                 className="flex items-center justify-center gap-2 text-sm text-[var(--color-lavender-mist)]/70 hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -120,5 +123,13 @@ export default function ForgotPasswordPage() {
         </CardBody>
       </Card>
     </div>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-[var(--color-tropical-teal)] to-[var(--color-electric-sapphire)]"></div>}>
+      <ForgotPasswordForm />
+    </Suspense>
   );
 }

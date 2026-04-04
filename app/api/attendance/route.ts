@@ -17,8 +17,11 @@ export async function GET(req: Request) {
     await connectDB();
     const url = new URL(req.url);
     const organization_id = url.searchParams.get("organization_id");
+    const user_id = url.searchParams.get("user_id");
     
-    const filter = organization_id ? { organization_id } : {};
+    const filter: any = {};
+    if (organization_id) filter.organization_id = organization_id;
+    if (user_id) filter.user_id = user_id;
     
     const logs = await AttendanceLog.find(filter)
       .populate('user_id', 'name email nfc_card_id')

@@ -11,6 +11,7 @@ import { AttendanceLog } from "@/models/AttendanceLog";
 import { Group } from "@/models/Group";
 import { Organization } from "@/models/Organization";
 import { User } from "@/models/User";
+import { Reader } from "@/models/Reader";
 
 function getWeekday(date: Date): number {
   return date.getDay(); // 0 = Sun, 6 = Sat
@@ -93,6 +94,7 @@ export async function GET() {
     // Prevent Next.js from treeshaking unused models needed for .populate()
     void Organization;
     void Group;
+    void Reader;
 
     // 1. Get memberships and organizations
     const memberships = await Membership.find({ user_id: userId }).populate("organization_id");

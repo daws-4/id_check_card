@@ -1,16 +1,25 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import LogoutButton from "@/components/LogoutButton";
-import { Nfc, LayoutDashboard, Users, UsersRound, CalendarPlus, Router, Receipt } from "lucide-react";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { Nfc, LayoutDashboard, Users, UsersRound, CalendarPlus, Router, Receipt, ArrowLeft } from "lucide-react";
 
 export default function OrgLayout({ children }: { children: ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
   const orgId = params?.orgId as string;
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then(r => r.json())
+      .then(s => { if (s?.user?.role === "superadmin") setIsSuperAdmin(true); })
+      .catch(() => {});
+  }, []);
 
   const navItems = [
     { href: `/org/${orgId}`, label: "Tablero", icon: LayoutDashboard },
@@ -22,9 +31,9 @@ export default function OrgLayout({ children }: { children: ReactNode }) {
   ];
 
   return (
-    <div className="bg-[var(--color-lavender-mist)] flex h-screen overflow-hidden text-[var(--color-carbon-black)]">
+    <div className="bg-[var(--color-lavender-mist)] dark:bg-zinc-950 flex h-screen overflow-hidden text-[var(--color-carbon-black)] dark:text-gray-100">
       {/* Barra Lateral (Sidebar) */}
-      <aside className="w-64 bg-[var(--color-carbon-black)] flex flex-col justify-between shadow-xl z-20">
+      <aside className="w-64 bg-[var(--color-carbon-black)] dark:bg-zinc-900 flex flex-col justify-between shadow-xl z-20">
         <div>
           {/* Encabezado del Logo */}
           <div className="p-6">
@@ -70,19 +79,29 @@ export default function OrgLayout({ children }: { children: ReactNode }) {
           </nav>
         </div>
 
-        <div className="p-4 border-t border-white/10 space-y-4">
+        <div className="p-4 border-t border-white/10 space-y-3">
+          {isSuperAdmin && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[var(--color-tropical-teal)]/10 text-[var(--color-tropical-teal)] hover:bg-[var(--color-tropical-teal)]/20 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Panel de Admin
+            </Link>
+          )}
           <LogoutButton />
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[var(--color-lavender-mist)]">
-        <header className="bg-white px-8 py-5 shadow-sm border-b border-gray-100 z-10 flex items-center justify-between">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[var(--color-lavender-mist)] dark:bg-zinc-950">
+        <header className="bg-white dark:bg-zinc-900 px-8 py-5 shadow-sm border-b border-gray-100 dark:border-white/10 z-10 flex items-center justify-between">
           <h2 className="text-[var(--color-tropical-teal)] text-xl font-bold flex items-center gap-2">
             Panel de Organización
           </h2>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500">Bienvenido</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">Bienvenido</span>
+            <ThemeSwitcher />
           </div>
         </header>
 

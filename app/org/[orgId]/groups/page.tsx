@@ -7,7 +7,9 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import { Spinner } from "@heroui/spinner";
+import { Pagination } from "@heroui/pagination";
 import { useParams, useRouter } from "next/navigation";
+import { Search, Plus } from "lucide-react";
 
 interface Group {
   _id: string;
@@ -29,16 +31,26 @@ export default function GroupsPage() {
   const [type, setType] = useState("work");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Pagination & Search State
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [search, setSearch] = useState("");
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
   useEffect(() => {
     fetchGroups();
-  }, [orgId]);
+  }, [orgId, page, limit, search]);
 
   const fetchGroups = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/groups?organization_id=${orgId}`);
+      const res = await fetch(`/api/groups?organization_id=${orgId}&page=${page}&limit=${limit}&search=${search}`);
       if (res.ok) {
-        setGroups(await res.json());
+        const data = await res.json();
+        setGroups(data.groups);
+        setTotal(data.total);
+        setTotalPages(data.pages);
       }
     } catch (error) {
       console.error("Failed to fetch groups", error);
@@ -73,11 +85,22 @@ export default function GroupsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Grupos</h2>
-        <Button color="primary" onPress={onOpen}>
-          Crear Grupo
-        </Button>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h2 className="text-2xl font-bold">Grupos de la Organización</h2>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Input 
+            placeholder="Buscar grupos..." 
+            startContent={<Search className="w-4 h-4 text-gray-400" />}
+            value={search}
+            onValueChange={(v) => { setSearch(v); setPage(1); }}
+            className="w-full sm:w-64"
+            size="sm"
+            variant="bordered"
+          />
+          <Button color="primary" onPress={onOpen} startContent={<Plus className="w-4 h-4" />}>
+            Crear Grupo
+          </Button>
+        </div>
       </div>
 
       <Table aria-label="Groups table" selectionMode="single" onRowAction={(key) => router.push(`/org/${orgId}/groups/${key}`)}>
@@ -107,6 +130,21 @@ export default function GroupsPage() {
           )}
         </TableBody>
       </Table>
+
+      {/* Pagination */}
+      <div className="p-4 bg-white dark:bg-[#1a1b1e] rounded-2xl shadow-sm border border-gray-100 dark:border-default-100 flex flex-col md:flex-row justify-between items-center gap-4">
+        <p className="text-sm text-gray-500">Mostrando {groups.length} de {total} grupos</p>
+        <Pagination
+          total={totalPages}
+          initialPage={1}
+          page={page}
+          onChange={(p) => setPage(p)}
+          showControls
+          color="primary"
+          variant="flat"
+          size="sm"
+        />
+      </div>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>

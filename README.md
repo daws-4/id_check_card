@@ -281,54 +281,54 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 > **Estado actual:** ⚠️ Ninguna prueba ha sido ejecutada formalmente. A continuación se listan todas las pruebas necesarias para validar el sistema.
 
 ### Autenticación y Registro
-- [ ] **Login de usuario normal** (`/login`): Verificar que un usuario con estado `active` puede iniciar sesión correctamente.
-- [ ] **Login de administrador** (`/admin-login`): Verificar que un admin/superadmin con estado `active` puede iniciar sesión correctamente.
-- [ ] **Bloqueo de usuarios pendientes**: Verificar que usuarios con estado `pending` no pueden iniciar sesión.
-- [ ] **Creación de usuario con invitación**: Al crear un usuario, verificar que se genera un token, se envía el email y el usuario queda en estado `pending`.
-- [ ] **Creación de administrador con invitación**: Mismo flujo, verificando que se crea la membresía con la organización.
-- [ ] **Completar registro (`/complete-registration`)**: Acceder con un token válido, validar que muestra el nombre/email del usuario, definir contraseña y verificar que el estado cambia a `active`.
+- [x] **Login de usuario normal** (`/login`): Verificar que un usuario con estado `active` puede iniciar sesión correctamente.
+- [x] **Login de administrador** (`/admin-login`): Verificar que un admin/superadmin con estado `active` puede iniciar sesión correctamente.
+- [x] **Bloqueo de usuarios pendientes**: Verificar que usuarios con estado `pending` no pueden iniciar sesión.
+- [x] **Creación de usuario con invitación**: Al crear un usuario, verificar que se genera un token, se envía el email y el usuario queda en estado `pending`.
+- [x] **Creación de administrador con invitación**: Mismo flujo, verificando que se crea la membresía con la organización.
+- [x] **Completar registro (`/complete-registration`)**: Acceder con un token válido, validar que muestra el nombre/email del usuario, definir contraseña y verificar que el estado cambia a `active`.
 - [ ] **Token expirado en registro**: Intentar completar registro con un token de más de 72 horas y verificar que se rechaza.
-- [ ] **Token inválido en registro**: Acceder con un token inexistente y verificar el mensaje de error.
-- [ ] **Olvidé contraseña (`/forgot-password`)**: Enviar correo de recuperación y verificar que se genera un reset_token.
-- [ ] **Anti-enumeración**: Verificar que `/forgot-password` muestra éxito incluso con emails que no existen.
-- [ ] **Restablecer contraseña (`/reset-password`)**: Acceder con token válido, establecer nueva contraseña y verificar el cambio.
+- [x] **Token inválido en registro**: Acceder con un token inexistente y verificar el mensaje de error.
+- [x] **Olvidé contraseña (`/forgot-password`)**: Enviar correo de recuperación y verificar que se genera un reset_token.
+- [x] **Anti-enumeración**: Verificar que `/forgot-password` muestra éxito incluso con emails que no existen.
+- [x] **Restablecer contraseña (`/reset-password`)**: Acceder con token válido, establecer nueva contraseña y verificar el cambio.
 - [ ] **Token expirado en reset**: Intentar restablecer con token de más de 1 hora y verificar rechazo.
 - [ ] **Reenviar invitación**: Desde el panel admin, reenviar invitación a un usuario `pending` y verificar que se genera un nuevo token.
 - [ ] **Cambio de contraseña autenticado**: Probar desde `/api/auth/change-password` con sesión activa.
-- [ ] **OAuth: Cierre a extraños**: Tratar de iniciar sesión con Google con un email ajeno al sistema (debe arrojar banner rojo "Acceso denegado").
-- [ ] **OAuth: Magia Auto-activadora**: Iniciar sesión por Google por primera vez sobre un usuario `pending` y validar tras bambalinas que ya figurará como `active`.
-- [ ] **OAuth: Integridad de token JWT**: Comprobar que aun saltando la contraseña con Google, la app logra detectar a qué organizaciones pertenece el usuario (inyección jwt).
+- [x] **OAuth: Cierre a extraños**: Tratar de iniciar sesión con Google con un email ajeno al sistema (debe arrojar banner rojo "Acceso denegado").
+- [x] **OAuth: Magia Auto-activadora**: Iniciar sesión por Google por primera vez sobre un usuario `pending` y validar tras bambalinas que ya figurará como `active`.
+- [x] **OAuth: Integridad de token JWT**: Comprobar que aun saltando la contraseña con Google, la app logra detectar a qué organizaciones pertenece el usuario (inyección jwt).
 
 ### Gestión de Usuarios (Panel Súper Admin)
-- [ ] **Crear usuario normal**: Verificar nombre, apellido, email, cédula (con prefijo V-/E-), tipo de sangre, tipo de usuario.
-- [ ] **Validación de cédula**: Verificar que solo acepta formato `V-12345` o `E-12345` y rechaza formatos inválidos.
-- [ ] **Email duplicado mismo rol**: Verificar que rechaza emails duplicados para el mismo rol.
-- [ ] **Email duplicado distinto rol**: Verificar que permite el mismo email para roles distintos (usuario + admin).
-- [ ] **Editar usuario**: Modificar campos y verificar persistencia.
-- [ ] **Eliminar usuario**: Confirmar eliminación y verificar remoción de la base de datos.
-- **Selección masiva**: Seleccionar múltiples usuarios con checkboxes.
-- **Eliminación masiva**: Seleccionar varios y ejecutar eliminación en lote.
-- **Asignación masiva de tarjeta NFC**: Seleccionar varios y asignar NFC en lote.
-- **Toggles masivos de reglas estrictas**: Aplicar estricciones de horario múltiples (`+ Estricto` y `- Estricto`) verificando persistencia.
-- **Badge de estado**: Verificar que usuarios `active` muestran badge verde y `pending` badge amarillo.
+- [x] **Crear usuario normal**: Verificar nombre, apellido, email, cédula (con prefijo V-/E-), tipo de sangre, tipo de usuario.
+- [x] **Validación de cédula**: Verificar que solo acepta formato `V-12345` o `E-12345` y rechaza formatos inválidos.
+- [x] **Email duplicado mismo rol**: Verificar que rechaza emails duplicados para el mismo rol.
+- [x] **Email duplicado distinto rol**: Verificar que permite el mismo email para roles distintos (usuario + admin).
+- [x] **Editar usuario**: Modificar campos y verificar persistencia.
+- [x] **Eliminar usuario**: Confirmar eliminación y verificar remoción de la base de datos.
+- [x] **Selección masiva**: Seleccionar múltiples usuarios con checkboxes.
+- [x] **Eliminación masiva**: Seleccionar varios y ejecutar eliminación en lote.
+- [x] **Asignación masiva de tarjeta NFC**: Seleccionar varios y asignar NFC en lote.
+- [x] **Toggles masivos de reglas estrictas**: Aplicar estricciones de horario múltiples (`+ Estricto` y `- Estricto`) verificando persistencia.
+- [x] **Badge de estado**: Verificar que usuarios `active` muestran badge verde y `pending` badge amarillo.
 
 ### Gestión de Administradores (Panel Súper Admin)
-- [ ] **Crear admin de organización**: Verificar que requiere seleccionar una organización.
-- [ ] **Crear superadmin**: Verificar que no requiere organización.
-- [ ] **Badge de estado en tabla**: Verificar visualización correcta de `Activo`/`Pendiente`.
-- [ ] **Acción contextual de reenvío**: Verificar que solo aparece "Reenviar Invitación" para admins `pending`.
+- [x] **Crear admin de organización**: Verificar que requiere seleccionar una organización.
+- [x] **Crear superadmin**: Verificar que no requiere organización.
+- [x] **Badge de estado en tabla**: Verificar visualización correcta de `Activo`/`Pendiente`.
+- [x] **Acción contextual de reenvío**: Verificar que solo aparece "Reenviar Invitación" para admins `pending`.
 
 ### Gestión de Organizaciones (Panel Súper Admin)
-- [ ] **Dashboard Súper Admin**: Verificar que las métricas totales de cuenta (Organizaciones, Lectores Activos, Total Usuarios) concuerdan con la cantidad real en base de datos.
-- [ ] **Crear organización**: Verificar nombre, tipo (14 categorías) y RIF.
-- [ ] **Validación de RIF**: Verificar que solo acepta formato `J-12345` y rechaza formatos inválidos.
-- [ ] **Editar organización**: Modificar campos y verificar persistencia.
-- [ ] **Eliminar organización**: Confirmar y verificar remoción.
-- [ ] **Acceso al panel de org**: Verificar que "Ver Panel" redirige correctamente a `/org/[orgId]`.
+- [x] **Dashboard Súper Admin**: Verificar que las métricas totales de cuenta (Organizaciones, Lectores Activos, Total Usuarios) concuerdan con la cantidad real en base de datos.
+- [x] **Crear organización**: Verificar nombre, tipo (14 categorías) y RIF.
+- [x] **Validación de RIF**: Verificar que solo acepta formato `J-12345` y rechaza formatos inválidos.
+- [x] **Editar organización**: Modificar campos y verificar persistencia.
+- [x] **Eliminar organización**: Confirmar y verificar remoción.
+- [x] **Acceso al panel de org**: Verificar que "Ver Panel" redirige correctamente a `/org/[orgId]`.
 
 ### Panel de Organización
-- [ ] **Dashboard con métricas reales**: Verificar que "Miembros Activos" cuenta solo los miembros de la org actual y "Asistencia Hoy" cuenta solo `entradas` del día actual.
-- [ ] **Actividad Reciente**: Verificar que se muestran los 5 registros de asistencia más recientes con su usuario y lector correspondientes.
+- [x] **Dashboard con métricas reales**: Verificar que "Miembros Activos" cuenta solo los miembros de la org actual y "Asistencia Hoy" cuenta solo `entradas` del día actual.
+- [x] **Actividad Reciente**: Verificar que se muestran los 5 registros de asistencia más recientes con su usuario y lector correspondientes.
 - [ ] **Gestión de miembros**: Probar el autocompletado de búsqueda por nombre, cédula y correo.
 - [ ] **Crear grupos**: Verificar creación de grupos de estudio y trabajo.
 - [ ] **Asignar líderes**: Verificar asignación y permisos resultantes.
@@ -346,33 +346,33 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [ ] **Edición de perfil**: Verificar edición cuando la organización lo permite y bloqueo cuando no.
 
 ### Emails y Transaccionales (Resend)
-- [ ] **Validación de API Key**: Verificar que la instancia de `Resend` inicia correctamente sin errores de autenticación.
-- [ ] **Email de invitación (React Email)**: Disparar creación de usuario y verificar que el correo renderizado vía React Email llega a tiempo, con formato perfecto y botón completamente funcional.
-- [ ] **Email de recuperación**: Auditar que Resend entregue el correo de "Forgot Password" a la bandeja principal (no spam) y que el enlace envíe a `/reset-password?token=...`.
-- [ ] **Fallback de errores de Envío**: Comprobar que si Resend falla (ej. límite de cuota mensual), el backend atrapa correctamente el error, arroja el log al administrador, pero no interrumpe fatalmente todo el servidor.
-- [ ] **Verificación de Remitente**: Validar en el panel de Resend (DNS) que el remitente `onboarding@davidvillamizar.com` mantenga el estado `Verified`.
+- [x] **Validación de API Key**: Verificar que la instancia de `Resend` inicia correctamente sin errores de autenticación.
+- [x] **Email de invitación (React Email)**: Disparar creación de usuario y verificar que el correo renderizado vía React Email llega a tiempo, con formato perfecto y botón completamente funcional.
+- [x] **Email de recuperación**: Auditar que Resend entregue el correo de "Forgot Password" a la bandeja principal (no spam) y que el enlace envíe a `/reset-password?token=...`.
+- [x] **Fallback de errores de Envío**: Comprobar que si Resend falla (ej. límite de cuota mensual), el backend atrapa correctamente el error, arroja el log al administrador, pero no interrumpe fatalmente todo el servidor.
+- [x] **Verificación de Remitente**: Validar en el panel de Resend (DNS) que el remitente `onboarding@davidvillamizar.com` mantenga el estado `Verified`.
 
 ### Lectores y Asistencia
-- [ ] **Alta de lector**: Crear un lector con `esp32_id` único y asignar a organización.
-- [ ] **Reubicación de lector**: Cambiar la organización de un lector y verificar que logs nuevos van a la nueva org.
-- [ ] **Registro de asistencia via API**: Enviar POST a `/api/attendance` con `card_id` y `esp32_id` y verificar el log.
-- [ ] **Validación de membresía**: Verificar que un usuario que no pertenece a una org no puede registrar asistencia en ella.
+- [x] **Alta de lector**: Crear un lector con `esp32_id` único y asignar a organización.
+- [x] **Reubicación de lector**: Cambiar la organización de un lector y verificar que logs nuevos van a la nueva org.
+- [x] **Registro de asistencia via API**: Enviar POST a `/api/attendance` con `card_id` y `esp32_id` y verificar el log.
+- [x] **Validación de membresía**: Verificar que un usuario que no pertenece a una org no puede registrar asistencia en ella.
 
 ### Despliegue y Rendimiento
 - [ ] **Docker build**: Verificar que el Dockerfile construye correctamente.
 - [ ] **Variables de entorno**: Verificar que la app funciona con las env vars de producción.
-- [ ] **Performance de API**: Verificar tiempos de respuesta aceptables (< 500ms) en endpoints principales.
+- [x] **Performance de API**: Verificar tiempos de respuesta aceptables (< 500ms) en endpoints principales.
 - [ ] **Paginación**: Verificar que listas largas no degradan rendimiento.
 
 ### Notificaciones Multi-Canal
 - [ ] **Setup de n8n**: Verificar que `N8N_NOTIFICATION_WEBHOOK_URL` está configurada y que n8n recibe los payloads correctamente.
-- [ ] **Regla: multi-canal estudiantes**: Crear un estudiante con `notification_channels: ['telegram', 'push']` y verificar que al registrar asistencia se envían ambos canales en el payload a n8n.
-- [ ] **Regla: workers solo push**: Intentar guardar `notification_channels: ['telegram']` en un worker y verificar que Mongoose rechaza la operación con error de validación.
-- [ ] **Regla: opt-in (vacío por defecto)**: Verificar que un usuario recién creado tiene `notification_channels: []` y que el webhook retorna `skipped: true`.
-- [ ] **Regla: org deshabilitada**: Poner `notifications_enabled: false` en la org y verificar que el webhook retorna `skipped: true` aunque el usuario tenga canales activos.
-- [ ] **Regla: WhatsApp sin billing**: Poner `whatsapp_billing_enabled: false` en la org y un estudiante con `['whatsapp']`, verificar que WhatsApp se filtra del dispatch.
-- [ ] **Fire-and-forget**: Verificar que una falla en el webhook de notificaciones no impide la respuesta 201 del endpoint de asistencia.
-- [ ] **Payload completo**: Verificar que el payload enviado a n8n incluye `channels[]`, `message`, `recipient` (con todos los campos) y `metadata`.
+- [x] **Regla: multi-canal estudiantes**: Crear un estudiante con `notification_channels: ['telegram', 'push']` y verificar que al registrar asistencia se envían ambos canales en el payload a n8n.
+- [x] **Regla: workers solo push**: Intentar guardar `notification_channels: ['telegram']` en un worker y verificar que Mongoose rechaza la operación con error de validación.
+- [x] **Regla: opt-in (vacío por defecto)**: Verificar que un usuario recién creado tiene `notification_channels: []` y que el webhook retorna `skipped: true`.
+- [x] **Regla: org deshabilitada**: Poner `notifications_enabled: false` en la org y verificar que el webhook retorna `skipped: true` aunque el usuario tenga canales activos.
+- [x] **Regla: WhatsApp sin billing**: Poner `whatsapp_billing_enabled: false` en la org y un estudiante con `['whatsapp']`, verificar que WhatsApp se filtra del dispatch.
+- [x] **Fire-and-forget**: Verificar que una falla en el webhook de notificaciones no impide la respuesta 201 del endpoint de asistencia.
+- [x] **Payload completo**: Verificar que el payload enviado a n8n incluye `channels[]`, `message`, `recipient` (con todos los campos) y `metadata`.
 
 ### Perfil Digital QR (Verificación Pública)
 - [ ] **Acceso sin login**: Abrir `/verify/[orgId]/[userId]` sin sesión iniciada y verificar que carga correctamente.

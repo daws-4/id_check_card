@@ -109,10 +109,10 @@ export default function UserDashboard() {
     <div className="space-y-8">
       {/* Title */}
       <div>
-        <h1 className="text-3xl font-bold text-[var(--color-carbon-black)]">
+        <h1 className="text-3xl font-bold text-[var(--color-carbon-black)] dark:text-white">
           Dashboard
         </h1>
-        <p className="text-gray-500 mt-1">
+        <p className="text-gray-500 dark:text-gray-400 mt-1">
           Resumen de tu jornada —{" "}
           {now.toLocaleDateString("es-ES", {
             weekday: "long",
@@ -124,30 +124,30 @@ export default function UserDashboard() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <Card className="bg-white shadow-md border-none">
+        <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
           <CardBody className="flex flex-row items-center gap-4 p-5">
             <div className="bg-emerald-100 text-emerald-600 rounded-xl p-3">
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Cumplimiento</p>
-              <p className="text-2xl font-bold">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Cumplimiento</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {metrics.scheduleCompliance}%
               </p>
             </div>
           </CardBody>
         </Card>
 
-        <Card className="bg-white shadow-md border-none">
+        <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
           <CardBody className="flex flex-row items-center gap-4 p-5">
             <div className="bg-blue-100 text-blue-600 rounded-xl p-3">
               <Clock className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 {metrics.strictScheduleEnforcement ? "Horas Cumplidas" : (userType === "student" ? "Horas de Estudio" : "Horas Trabajadas")}
               </p>
-              <p className="text-2xl font-bold">
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {metrics.strictScheduleEnforcement 
                   ? `${metrics.totalHoursWorked}/${+(metrics.expectedMinutesToday / 60).toFixed(1)}h` 
                   : `${metrics.totalHoursWorked}h`}
@@ -156,30 +156,30 @@ export default function UserDashboard() {
           </CardBody>
         </Card>
 
-        <Card className="bg-white shadow-md border-none">
+        <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
           <CardBody className="flex flex-row items-center gap-4 p-5">
             <div className="bg-purple-100 text-purple-600 rounded-xl p-3">
               <TrendingUp className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Tiempo Extra</p>
-              <p className="text-2xl font-bold">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Tiempo Extra</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {metrics.overtimeMinutes} min
               </p>
             </div>
           </CardBody>
         </Card>
 
-        <Card className="bg-white shadow-md border-none">
+        <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
           <CardBody className="flex flex-row items-center gap-4 p-5">
             <div className="bg-amber-100 text-amber-600 rounded-xl p-3">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Llegadas Tarde</p>
-              <p className="text-2xl font-bold">{metrics.lateArrivals}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Llegadas Tarde</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.lateArrivals}</p>
               {metrics.lateArrivals > 0 && (
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-400 dark:text-gray-500">
                   ~{metrics.avgLateMinutes} min prom.
                 </p>
               )}
@@ -191,9 +191,9 @@ export default function UserDashboard() {
       {/* Two column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Today's Schedules */}
-        <Card className="bg-white shadow-md border-none">
+        <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
           <CardHeader className="flex justify-between items-center px-6 pt-5 pb-0">
-            <h3 className="text-lg font-bold flex items-center gap-2">
+            <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-white">
               <Calendar className="w-5 h-5 text-[var(--color-tropical-teal)]" />
               Horarios de Hoy
             </h3>
@@ -210,7 +210,7 @@ export default function UserDashboard() {
           </CardHeader>
           <CardBody className="px-6 py-4">
             {todaySchedules.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-8">
+              <p className="text-gray-400 dark:text-gray-500 text-sm text-center py-8">
                 Sin horarios para hoy
               </p>
             ) : (
@@ -228,10 +228,10 @@ export default function UserDashboard() {
                       key={s._id}
                       className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
                         isActive
-                          ? "border-emerald-300 bg-emerald-50"
+                          ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-700"
                           : isPast
-                            ? "border-gray-200 bg-gray-50 opacity-60"
-                            : "border-blue-200 bg-blue-50"
+                            ? "border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800/50 opacity-60"
+                            : "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -245,8 +245,8 @@ export default function UserDashboard() {
                           }`}
                         />
                         <div>
-                          <p className="font-semibold text-sm">{s.title}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="font-semibold text-sm text-gray-900 dark:text-white">{s.title}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             {s.groupName}
                           </p>
                         </div>
@@ -275,9 +275,9 @@ export default function UserDashboard() {
         </Card>
 
         {/* Pending Tasks */}
-        <Card className="bg-white shadow-md border-none">
+        <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
           <CardHeader className="flex justify-between items-center px-6 pt-5 pb-0">
-            <h3 className="text-lg font-bold flex items-center gap-2">
+            <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-white">
               <ListChecks className="w-5 h-5 text-[var(--color-electric-sapphire)]" />
               Tareas Pendientes
             </h3>
@@ -294,7 +294,7 @@ export default function UserDashboard() {
           </CardHeader>
           <CardBody className="px-6 py-4">
             {pendingTasks.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-8">
+              <p className="text-gray-400 dark:text-gray-500 text-sm text-center py-8">
                 ¡No tienes tareas pendientes! 🎉
               </p>
             ) : (
@@ -302,12 +302,12 @@ export default function UserDashboard() {
                 {pendingTasks.slice(0, 5).map((t: any) => (
                   <div
                     key={t._id}
-                    className="flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:border-[var(--color-electric-sapphire)]/30 transition-all"
+                    className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-zinc-700 hover:border-[var(--color-electric-sapphire)]/30 transition-all"
                   >
                     <div className="flex-1">
-                      <p className="font-semibold text-sm">{t.title}</p>
+                      <p className="font-semibold text-sm text-gray-900 dark:text-white">{t.title}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
                           {t.groupName}
                         </span>
                         {t.due_date && (
@@ -347,23 +347,23 @@ export default function UserDashboard() {
       </div>
 
       {/* Recent NFC Logs */}
-      <Card className="bg-white shadow-md border-none">
+      <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
         <CardHeader className="px-6 pt-5 pb-0">
-          <h3 className="text-lg font-bold flex items-center gap-2">
+          <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-white">
             <Nfc className="w-5 h-5 text-[var(--color-maya-blue)]" />
             Últimos Registros NFC
           </h3>
         </CardHeader>
         <CardBody className="px-6 py-4">
           {recentLogs.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">
+            <p className="text-gray-400 dark:text-gray-500 text-sm text-center py-8">
               Sin registros recientes
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-gray-400 border-b">
+                  <tr className="text-left text-gray-400 dark:text-gray-500 border-b dark:border-zinc-700">
                     <th className="pb-3 font-medium">Fecha/Hora</th>
                     <th className="pb-3 font-medium">Tipo</th>
                     <th className="pb-3 font-medium">Estado</th>
@@ -373,7 +373,7 @@ export default function UserDashboard() {
                 </thead>
                 <tbody>
                   {recentLogs.slice(0, 5).map((log: any) => (
-                    <tr key={log._id} className="border-b border-gray-50">
+                    <tr key={log._id} className="border-b border-gray-50 dark:border-zinc-800">
                       <td className="py-3">
                         {new Date(log.timestamp).toLocaleString("es-ES", {
                           day: "2-digit",
@@ -438,7 +438,7 @@ export default function UserDashboard() {
                           <span className="text-gray-300">—</span>
                         )}
                       </td>
-                      <td className="py-3 text-gray-600">
+                      <td className="py-3 text-gray-600 dark:text-gray-300">
                         {log.organization_id?.name || "—"}
                       </td>
                     </tr>

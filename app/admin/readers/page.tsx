@@ -144,7 +144,7 @@ export default function ReadersPage() {
   return (
     <section>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h3 className="text-[var(--color-carbon-black)] text-2xl font-bold">Lectores y Dispositivos</h3>
+        <h3 className="text-[var(--color-carbon-black)] dark:text-white text-2xl font-bold">Lectores y Dispositivos</h3>
         <button 
           onClick={() => handleOpenModal()}
           className="bg-[var(--color-maya-blue)] hover:bg-[var(--color-tropical-teal)] text-white font-medium px-5 py-2.5 rounded-xl shadow-md shadow-[var(--color-maya-blue)]/30 transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer"
@@ -154,11 +154,11 @@ export default function ReadersPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-[#1a1b1e] rounded-2xl shadow-sm border border-gray-100 dark:border-default-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[var(--color-lavender-mist)]/50 border-b border-gray-100">
+              <tr className="bg-[var(--color-lavender-mist)]/50 dark:bg-default-50/50 border-b border-gray-100 dark:border-default-100">
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">ID ESP32</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Organización</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Ubicación</th>
@@ -166,7 +166,7 @@ export default function ReadersPage() {
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-default-100">
               {loading ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center">
@@ -181,18 +181,18 @@ export default function ReadersPage() {
                 </tr>
               ) : (
                 readers.map((reader, idx) => (
-                  <tr key={reader._id} className="hover:bg-[var(--color-lavender-mist)]/30 transition-colors group">
+                  <tr key={reader._id} className="hover:bg-[var(--color-lavender-mist)]/30 dark:hover:bg-default-100 transition-colors group">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold bg-[var(--color-electric-sapphire)]/10 text-[var(--color-electric-sapphire)]`}>
                           <Router className="w-5 h-5" />
                         </div>
-                        <span className="font-semibold text-carbon-black font-mono">{reader.esp32_id}</span>
+                        <span className="font-semibold text-carbon-black dark:text-white font-mono">{reader.esp32_id}</span>
                       </div>
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium">{reader.organization_id?.name || "Sin asignar"}</span>
+                        <span className="text-sm font-medium dark:text-white">{reader.organization_id?.name || "Sin asignar"}</span>
                         {reader.group_id && <span className="text-xs text-gray-500 mt-0.5">Grupo: {reader.group_id.name}</span>}
                       </div>
                     </td>
@@ -207,7 +207,7 @@ export default function ReadersPage() {
                     <td className="py-4 px-6 text-right">
                       <Dropdown>
                         <DropdownTrigger>
-                          <button className="p-2 text-gray-400 hover:text-[var(--color-tropical-teal)] transition-colors rounded-lg hover:bg-[var(--color-tropical-teal)]/10 cursor-pointer">
+                          <button className="p-2 text-gray-400 hover:text-[var(--color-tropical-teal)] dark:hover:text-white transition-colors rounded-lg hover:bg-[var(--color-tropical-teal)]/10 dark:hover:bg-default-200 cursor-pointer">
                             <MoreVertical className="w-5 h-5" />
                           </button>
                         </DropdownTrigger>

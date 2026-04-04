@@ -72,7 +72,8 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           email: user.email,
           role: user.role,
-          orgs: orgIds
+          orgs: orgIds,
+          theme_preference: user.theme_preference
         };
       }
     })
@@ -109,6 +110,7 @@ export const authOptions: NextAuthOptions = {
         if (dbUser) {
           token.id = dbUser._id.toString();
           token.role = dbUser.role;
+          token.theme_preference = dbUser.theme_preference;
           const memberships = await Membership.find({ user_id: dbUser._id, role: 'admin' });
           token.orgs = memberships.map(m => m.organization_id.toString());
         }
@@ -116,6 +118,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = (user as any).role;
         token.orgs = (user as any).orgs;
+        token.theme_preference = (user as any).theme_preference;
       }
       return token;
     },
@@ -124,6 +127,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         (session.user as any).orgs = token.orgs;
+        (session.user as any).theme_preference = token.theme_preference;
       }
       return session;
     }
@@ -135,9 +139,14 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: '/login'
-  }
+  },
 };
 
-const handler = NextAuth(authOptions);
+const useSecure = process.env.NEXTAUTH_URL?.startsWith('https://') ?? false;
+
+const handler = NextAuth({
+  ...authOptions,
+  useSecureCookies: useSecure,
+} as any);
 
 export { handler as GET, handler as POST };

@@ -22,10 +22,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Only admins and superadmins can upload photos
+    // Only superadmins can upload photos
     const role = (session.user as any).role;
-    if (!['superadmin', 'org_admin'].includes(role)) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    if (role !== 'superadmin') {
+      return NextResponse.json({ error: 'Solo los super admins pueden modificar imágenes' }, { status: 403 });
     }
 
     const formData = await req.formData();
@@ -51,30 +51,29 @@ export async function POST(req: Request) {
     // Check if user already has a photo record of this type - update instead of creating duplicate
     let existingRecord = null;
     try {
-      existingRecord = await pb.collection('user_photos').getFirstListItem(
-        `mongo_user_id="${userId}" && photo_type="${photoType}"`
+      existingRecord = await pb.collection('IDCHECKCARD_user_photos').getFirstListItem(
+        `user_mongo_id="${userId}"`
       );
     } catch {
       // No existing record found, will create new
     }
 
     const pbFormData = new FormData();
-    pbFormData.append('mongo_user_id', userId);
+    pbFormData.append('user_mongo_id', userId);
     pbFormData.append('photo', photo);
-    pbFormData.append('photo_type', photoType);
-    if (organizationId) pbFormData.append('organization_id', organizationId);
+    pbFormData.append('id', userId.substring(0, 15)); // Custom 15 character ID based on mongo _id
 
     let record;
     if (existingRecord) {
       // Update existing record
-      record = await pb.collection('user_photos').update(existingRecord.id, pbFormData);
+      record = await pb.collection('IDCHECKCARD_user_photos').update(existingRecord.id, pbFormData);
     } else {
       // Create new record
-      record = await pb.collection('user_photos').create(pbFormData);
+      record = await pb.collection('IDCHECKCARD_user_photos').create(pbFormData);
     }
 
     // Build the public URL and save to MongoDB user
-    const photoUrl = getPublicPbFileUrl('user_photos', record.id, record['photo']);
+    const photoUrl = getPublicPbFileUrl('IDCHECKCARD_user_photos', record.id, record['photo']);
 
     // Update user's photo_url in MongoDB if this is a profile photo
     if (photoType === 'profile') {

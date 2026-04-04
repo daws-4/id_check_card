@@ -5,14 +5,27 @@ import { decode } from 'next-auth/jwt';
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const sessionToken = request.cookies.get('next-auth.session-token')?.value || 
-                       request.cookies.get('__Secure-next-auth.session-token')?.value;
+  // Never intercept NextAuth API routes or public assets
+  if (
+    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.includes('.')
+  ) {
+    return NextResponse.next();
+  }
+
+  const sessionToken = request.cookies.get('next-auth.session-token')?.value ||
+    request.cookies.get('__Secure-next-auth.session-token')?.value;
 
   if (!sessionToken) {
     if (pathname.startsWith('/admin') || pathname.startsWith('/org')) {
       return NextResponse.redirect(new URL('/admin-login', request.url));
     }
-    return NextResponse.redirect(new URL('/login', request.url));
+    if (pathname.startsWith('/user')) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    return NextResponse.next();
   }
 
   try {
@@ -25,13 +38,16 @@ export async function proxy(request: NextRequest) {
       if (pathname.startsWith('/admin') || pathname.startsWith('/org')) {
         return NextResponse.redirect(new URL('/admin-login', request.url));
       }
-      return NextResponse.redirect(new URL('/login', request.url));
+      if (pathname.startsWith('/user')) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+      return NextResponse.next();
     }
 
     const userRole = decoded.role as string;
     const userOrgs = (decoded.orgs as string[]) || [];
 
-    // Superadmin can access /admin and /org
+    // Superadmin can access everything
     if (userRole === 'superadmin') {
       return NextResponse.next();
     }
@@ -46,9 +62,8 @@ export async function proxy(request: NextRequest) {
             return NextResponse.next();
           }
         }
-        // If they try to access an org they don't admin, redirect to their first org or home
         if (userOrgs.length > 0) {
-            return NextResponse.redirect(new URL(`/org/${userOrgs[0]}`, request.url));
+          return NextResponse.redirect(new URL(`/org/${userOrgs[0]}`, request.url));
         }
       }
       return NextResponse.redirect(new URL('/', request.url));
@@ -60,16 +75,28 @@ export async function proxy(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Error decoding token', error);
+    console.error('Proxy: Error decoding token', error);
     if (pathname.startsWith('/admin') || pathname.startsWith('/org')) {
       return NextResponse.redirect(new URL('/admin-login', request.url));
     }
-    return NextResponse.redirect(new URL('/login', request.url));
+    if (pathname.startsWith('/user')) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    return NextResponse.next();
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/org/:path*'],
+  matcher: [
+    /*
+     * Match all paths except:
+     * - api/auth (NextAuth routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization)
+     * - favicon.ico, public assets
+     */
+    '/((?!api/auth|_next/static|_next/image|favicon.ico|complete-registration|reset-password|forgot-password|login|admin-login|verify).*)',
+  ],
 };

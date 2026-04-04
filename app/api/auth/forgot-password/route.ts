@@ -6,10 +6,17 @@ import crypto from 'crypto';
 export async function POST(req: Request) {
   try {
     await connectDB();
-    const { email } = await req.json();
+    const { email, portalType } = await req.json();
 
     if (!email) {
       return NextResponse.json({ error: 'El correo es requerido' }, { status: 400 });
+    }
+
+    let roleFilter = {};
+    if (portalType === 'admin') {
+      roleFilter = { role: { $in: ['org_admin', 'superadmin'] } };
+    } else {
+      roleFilter = { role: 'user' };
     }
 
     // Siempre retornar éxito para no revelar si el email existe
@@ -17,7 +24,7 @@ export async function POST(req: Request) {
       message: 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.',
     });
 
-    const user = await User.findOne({ email, status: 'active' });
+    const user = await User.findOne({ email, status: 'active', ...roleFilter });
 
     if (!user) {
       return genericResponse;

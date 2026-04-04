@@ -371,7 +371,7 @@ export default function BillingPage() {
 
       {/* ── Tarjetas resumen ── */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-white/10 relative overflow-hidden">
+        <div className="bg-white dark:bg-[#1a1b1e] rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-default-100 relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-[var(--color-electric-sapphire)]/10 rounded-full blur-2xl" />
           <div className="flex items-center justify-between mb-3">
             <p className="text-gray-500 dark:text-gray-400 font-medium text-xs">Total Facturado</p>
@@ -380,7 +380,7 @@ export default function BillingPage() {
           <p className="text-3xl font-bold text-[var(--color-carbon-black)] dark:text-white">{formatCurrency(g.total_amount, cur)}</p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{g.total_invoices} facturas</p>
         </div>
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-white/10 relative overflow-hidden">
+        <div className="bg-white dark:bg-[#1a1b1e] rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-default-100 relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl" />
           <div className="flex items-center justify-between mb-3">
             <p className="text-gray-500 dark:text-gray-400 font-medium text-xs">Pendiente</p>
@@ -389,7 +389,7 @@ export default function BillingPage() {
           <p className="text-3xl font-bold text-[var(--color-carbon-black)] dark:text-white">{formatCurrency(g.total_pending, cur)}</p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{g.count_pending} facturas</p>
         </div>
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-white/10 relative overflow-hidden">
+        <div className="bg-white dark:bg-[#1a1b1e] rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-default-100 relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl" />
           <div className="flex items-center justify-between mb-3">
             <p className="text-gray-500 dark:text-gray-400 font-medium text-xs">Cobrado</p>
@@ -398,7 +398,7 @@ export default function BillingPage() {
           <p className="text-3xl font-bold text-[var(--color-carbon-black)] dark:text-white">{formatCurrency(g.total_paid, cur)}</p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{g.count_paid} facturas</p>
         </div>
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-white/10 relative overflow-hidden">
+        <div className="bg-white dark:bg-[#1a1b1e] rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-default-100 relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-500/10 rounded-full blur-2xl" />
           <div className="flex items-center justify-between mb-3">
             <p className="text-gray-500 dark:text-gray-400 font-medium text-xs">Vencido</p>
@@ -410,7 +410,7 @@ export default function BillingPage() {
       </div>
 
       {/* Configuración Actual */}
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-white/10 mb-8 flex items-center justify-between">
+      <div className="bg-white dark:bg-[#1a1b1e] rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-default-100 mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Settings className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           <div>
@@ -445,11 +445,11 @@ export default function BillingPage() {
       </div>
 
       {/* ── Tabla de facturas ── */}
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
+      <div className="bg-white dark:bg-[#1a1b1e] rounded-2xl shadow-sm border border-gray-100 dark:border-default-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[var(--color-lavender-mist)]/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/10">
+              <tr className="bg-[var(--color-lavender-mist)]/50 dark:bg-default-50/50 border-b border-gray-100 dark:border-default-100">
                 <th className="py-4 px-5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Organización</th>
                 <th className="py-4 px-5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Periodo</th>
                 <th className="py-4 px-5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">Usuarios</th>
@@ -459,7 +459,7 @@ export default function BillingPage() {
                 <th className="py-4 px-5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-white/10">
+            <tbody className="divide-y divide-gray-100 dark:divide-default-100">
               {filteredInvoices.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-gray-400">
@@ -472,7 +472,7 @@ export default function BillingPage() {
                   const st = statusLabels[inv.status];
                   const StIcon = st.icon;
                   return (
-                    <tr key={inv._id} className="hover:bg-[var(--color-lavender-mist)]/30 dark:hover:bg-white/5 transition-colors group">
+                    <tr key={inv._id} className="hover:bg-[var(--color-lavender-mist)]/30 dark:hover:bg-default-100 transition-colors group">
                       <td className="py-4 px-5">
                         <div className="font-semibold text-[var(--color-carbon-black)] dark:text-white text-sm">{getOrgName(inv)}</div>
                         {typeof inv.organization_id === "object" && (

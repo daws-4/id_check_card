@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@heroui/table";
 import { Button } from "@heroui/button";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/modal";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import { Checkbox } from "@heroui/checkbox";
 import { Autocomplete, AutocompleteItem } from "@heroui/autocomplete";
 import { Spinner } from "@heroui/spinner";
+import { Pagination } from "@heroui/pagination";
 import { useParams } from "next/navigation";
+import { MoreVertical, Search, Plus, Trash2, CreditCard, Clock, X } from "lucide-react";
 
 interface User {
   _id: string;
@@ -19,6 +23,7 @@ interface User {
   has_nfc_card?: boolean;
   document_id?: string;
   role: string;
+  status?: string;
 }
 
 interface Membership {
@@ -40,6 +45,14 @@ export default function MembersPage() {
   
   const [selectedKeys, setSelectedKeys] = useState<any>(new Set([]));
   const [isBulkLoading, setIsBulkLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Pagination & Search State
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(15);
+  const [search, setSearch] = useState("");
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   // Form State
   const [mode, setMode] = useState<"select" | "create">("select");
@@ -50,29 +63,35 @@ export default function MembersPage() {
   const [newName, setNewName] = useState("");
   const [newLastName, setNewLastName] = useState("");
   const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const [newBirthDate, setNewBirthDate] = useState("");
   const [newDocumentId, setNewDocumentId] = useState("");
   const [newDocPrefix, setNewDocPrefix] = useState("V");
   const [newBloodType, setNewBloodType] = useState("");
   const [newUserType, setNewUserType] = useState("worker");
   const [newStrictSchedule, setNewStrictSchedule] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchData();
-  }, [orgId]);
+  }, [orgId, page, limit, search]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const [membersRes, usersRes] = await Promise.all([
-        fetch(`/api/memberships?organization_id=${orgId}`),
-        fetch("/api/users")
+        fetch(`/api/memberships?organization_id=${orgId}&page=${page}&limit=${limit}&search=${search}`),
+        fetch("/api/users?limit=100") // Limiting available users to attach
       ]);
       
-      if (membersRes.ok) setMemberships(await membersRes.json());
-      if (usersRes.ok) setUsers(await usersRes.json());
+      if (membersRes.ok) {
+        const data = await membersRes.json();
+        setMemberships(data.memberships);
+        setTotal(data.total);
+        setTotalPages(data.pages);
+      }
+      if (usersRes.ok) {
+        const data = await usersRes.json();
+        setUsers(data.users || data);
+      }
     } catch (error) {
       console.error("Failed to fetch data", error);
     } finally {
@@ -88,7 +107,6 @@ export default function MembersPage() {
     setNewName("");
     setNewLastName("");
     setNewEmail("");
-    setNewPassword("");
     setNewBirthDate("");
     setNewDocumentId("");
     setNewDocPrefix("V");
@@ -113,7 +131,6 @@ export default function MembersPage() {
             name: newName, 
             last_name: newLastName,
             email: newEmail, 
-            password: newPassword, 
             birth_date: newBirthDate || undefined,
             document_id: newDocumentId ? `${newDocPrefix}-${newDocumentId}` : undefined,
             blood_type: newBloodType,
@@ -244,6 +261,26 @@ export default function MembersPage() {
     }
   };
 
+  const handleRemoveMember = async (membershipId: string) => {
+    if (!confirm("¿Eliminar este miembro de la organización?")) return;
+    try {
+      const res = await fetch('/api/memberships/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ membershipIds: [membershipId] })
+      });
+      if (res.ok) await fetchData();
+    } catch (err) { console.error(err); }
+  };
+
+  const getStatusBadge = (status?: string) => {
+    switch (status) {
+      case 'active': return <span className="px-2 py-1 rounded-full text-xs font-medium bg-success/20 text-success">Activo</span>;
+      case 'pending': return <span className="px-2 py-1 rounded-full text-xs font-medium bg-warning/20 text-warning">Pendiente</span>;
+      default: return <span className="px-2 py-1 rounded-full text-xs font-medium bg-danger/20 text-danger">Inactivo</span>;
+    }
+  };
+
   const selectedCount = selectedKeys === "all" ? memberships.length : (selectedKeys as Set<string>).size;
 
   return (
@@ -267,7 +304,26 @@ export default function MembersPage() {
               </Button>
             </>
           )}
-          <Button color="primary" onPress={handleOpenModal}>
+          <Input 
+            placeholder="Buscar por nombre, email, cédula..." 
+            startContent={<Search className="w-4 h-4 text-gray-400" />}
+            value={search}
+            onValueChange={(v) => { setSearch(v); setPage(1); }}
+            className="w-full md:w-64"
+            size="sm"
+            variant="bordered"
+          />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 whitespace-nowrap">Mostrar:</span>
+            <select 
+              className="bg-transparent border border-divider rounded-lg text-xs p-1 cursor-pointer"
+              value={limit}
+              onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+            >
+              {[15, 30, 50, 100].map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
+          <Button color="primary" onPress={handleOpenModal} startContent={<Plus className="w-4 h-4" />}>
             Agregar Miembro
           </Button>
         </div>
@@ -282,10 +338,11 @@ export default function MembersPage() {
         <TableHeader>
           <TableColumn>NOMBRE</TableColumn>
           <TableColumn>CORREO</TableColumn>
-          <TableColumn>ID (SISTEMA)</TableColumn>
+          <TableColumn>ESTADO</TableColumn>
           <TableColumn>TIENE TARJETA</TableColumn>
           <TableColumn>ROL</TableColumn>
           <TableColumn>SE UNIÓ</TableColumn>
+          <TableColumn>ACCIONES</TableColumn>
         </TableHeader>
         <TableBody
           items={memberships}
@@ -294,10 +351,12 @@ export default function MembersPage() {
           {(membership) => (
             <TableRow key={membership._id}>
               <TableCell className="font-medium">
-                {membership.user_id?.name || "Unknown User"} {membership.user_id?.last_name || ""}
+                <Link href={`/admin/user/${membership.user_id?._id}`} className="hover:text-primary transition-colors">
+                  {membership.user_id?.name || "Unknown"} {membership.user_id?.last_name || ""}
+                </Link>
               </TableCell>
               <TableCell>{membership.user_id?.email || "N/A"}</TableCell>
-              <TableCell className="font-mono text-xs text-default-500">{membership.user_id?._id || "N/A"}</TableCell>
+              <TableCell>{getStatusBadge(membership.user_id?.status)}</TableCell>
               <TableCell>
                 <span className={`px-2 py-1 rounded-full text-xs ${membership.user_id?.has_nfc_card ? 'bg-success/20 text-success' : 'bg-default-200'}`}>
                   {membership.user_id?.has_nfc_card ? 'Sí' : 'No'}
@@ -311,10 +370,39 @@ export default function MembersPage() {
               <TableCell className="text-default-500 text-sm">
                 {new Date(membership.createdAt).toLocaleDateString()}
               </TableCell>
+              <TableCell>
+                <Dropdown>
+                  <DropdownTrigger>
+                    <button className="p-1.5 text-default-400 hover:text-primary transition-colors rounded-lg hover:bg-primary/10 cursor-pointer">
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                  </DropdownTrigger>
+                  <DropdownMenu aria-label="Acciones de miembro">
+                    <DropdownItem key="detail" href={`/admin/user/${membership.user_id?._id}`}>Ver / Editar Datos</DropdownItem>
+                    <DropdownItem key="qr" href={`/admin/user/${membership.user_id?._id}#qr`}>Perfil QR</DropdownItem>
+                    <DropdownItem key="remove" className="text-danger" color="danger" onPress={() => handleRemoveMember(membership._id)}>Quitar de Org</DropdownItem>
+                  </DropdownMenu>
+                </Dropdown>
+              </TableCell>
             </TableRow>
           )}
         </TableBody>
       </Table>
+
+      {/* Pagination */}
+      <div className="p-4 bg-white dark:bg-[#1a1b1e] rounded-2xl shadow-sm border border-gray-100 dark:border-default-100 flex flex-col md:flex-row justify-between items-center gap-4">
+        <p className="text-sm text-gray-500">Mostrando {memberships.length} de {total} miembros</p>
+        <Pagination
+          total={totalPages}
+          initialPage={1}
+          page={page}
+          onChange={(p) => setPage(p)}
+          showControls
+          color="primary"
+          variant="flat"
+          size="sm"
+        />
+      </div>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
@@ -422,7 +510,9 @@ export default function MembersPage() {
                     {role === "user" && (
                       <Input label="Correo" type="email" placeholder="Ingresa el correo" variant="bordered" value={newEmail} onValueChange={setNewEmail} />
                     )}
-                    <Input label="Contraseña" type="password" placeholder="Ingresa la contraseña" variant="bordered" value={newPassword} onValueChange={setNewPassword} />
+                    <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm text-primary">
+                      Se enviará un correo de invitación para que el usuario defina su propia contraseña.
+                    </div>
                   </div>
                 )}
 
@@ -430,7 +520,6 @@ export default function MembersPage() {
                   label="Rol en la Organización" 
                   variant="bordered" 
                   selectedKeys={new Set([role])}
-                  defaultSelectedKeys={new Set(["user"])}
                   onChange={(e) => setRole(e.target.value)}
                 >
                   <SelectItem key="user">Usuario Estándar</SelectItem>
@@ -441,7 +530,7 @@ export default function MembersPage() {
                 <Button color="danger" variant="flat" onPress={onClose}>
                   Cancelar
                 </Button>
-                <Button color="primary" onPress={() => handleAddMember(onClose)} isLoading={isSubmitting} isDisabled={mode === "select" ? !selectedUserId : (!newName || !newEmail || !newPassword)}>
+                <Button color="primary" onPress={() => handleAddMember(onClose)} isLoading={isSubmitting} isDisabled={mode === "select" ? !selectedUserId : (!newName || !newEmail)}>
                   Agregar
                 </Button>
               </ModalFooter>

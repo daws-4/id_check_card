@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/modal";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import { Spinner } from "@heroui/spinner";
 import { Button } from "@heroui/button";
-import { Plus, MoreVertical, Mail } from "lucide-react";
+import { Pagination } from "@heroui/pagination";
+import { Plus, MoreVertical, Mail, Search } from "lucide-react";
 
 interface User {
   _id: string;
@@ -41,21 +43,33 @@ export default function AdminsPage() {
   const [organizationId, setOrganizationId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Pagination & Search State
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(15);
+  const [search, setSearch] = useState("");
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
   // Resend invite state
   const [resendingUserId, setResendingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
+  }, [page, limit, search]);
+
+  useEffect(() => {
     fetchOrganizations();
   }, []);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/users?type=admins");
+      const res = await fetch(`/api/users?type=admins&page=${page}&limit=${limit}&search=${search}`);
       if (res.ok) {
         const data = await res.json();
-        setUsers(data);
+        setUsers(data.users);
+        setTotal(data.total);
+        setTotalPages(data.pages);
       }
     } catch (error) {
       console.error("Failed to fetch users", error);
@@ -177,21 +191,42 @@ export default function AdminsPage() {
   return (
     <section>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h3 className="text-[var(--color-carbon-black)] text-2xl font-bold">Staff Administrativo</h3>
-        <button 
-          onClick={() => handleOpenModal()}
-          className="bg-[var(--color-electric-sapphire)] hover:bg-blue-600 text-white font-medium px-5 py-2.5 rounded-xl shadow-md shadow-[var(--color-electric-sapphire)]/30 transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          Agregar Administrador
-        </button>
+        <h3 className="text-[var(--color-carbon-black)] dark:text-white text-2xl font-bold">Staff Administrativo</h3>
+        <div className="flex flex-wrap gap-2 items-center">
+          <Input 
+            placeholder="Buscar por nombre, email, cédula..." 
+            startContent={<Search className="w-4 h-4 text-gray-400" />}
+            value={search}
+            onValueChange={(v) => { setSearch(v); setPage(1); }}
+            className="w-full md:w-64"
+            size="sm"
+            variant="bordered"
+          />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 whitespace-nowrap">Mostrar:</span>
+            <select 
+              className="bg-transparent border border-divider rounded-lg text-xs p-1 cursor-pointer"
+              value={limit}
+              onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+            >
+              {[15, 30, 50, 100].map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
+          <button 
+            onClick={() => handleOpenModal()}
+            className="bg-[var(--color-electric-sapphire)] hover:bg-blue-600 text-white font-medium px-5 py-2.5 rounded-xl shadow-md shadow-[var(--color-electric-sapphire)]/30 transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            Agregar Administrador
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-[#1a1b1e] rounded-2xl shadow-sm border border-gray-100 dark:border-default-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[var(--color-lavender-mist)]/50 border-b border-gray-100">
+              <tr className="bg-[var(--color-lavender-mist)]/50 dark:bg-default-50/50 border-b border-gray-100 dark:border-default-100">
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Cédula</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Correo</th>
@@ -201,7 +236,7 @@ export default function AdminsPage() {
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-default-100">
               {loading ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center">
@@ -216,14 +251,16 @@ export default function AdminsPage() {
                 </tr>
               ) : (
                 users.map((user, idx) => (
-                  <tr key={user._id} className="hover:bg-[var(--color-lavender-mist)]/30 transition-colors group">
+                  <tr key={user._id} className="hover:bg-[var(--color-lavender-mist)]/30 dark:hover:bg-default-100 transition-colors group">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${idx % 2 === 0 ? 'bg-[var(--color-electric-sapphire)]/10 text-[var(--color-electric-sapphire)]' : 'bg-[var(--color-maya-blue)]/10 text-[var(--color-maya-blue)]'}`}>
                           {getInitials(user.name)}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-semibold text-[var(--color-carbon-black)]">{user.name}</span>
+                          <Link href={`/admin/user/${user._id}`} className="font-semibold text-[var(--color-carbon-black)] dark:text-white hover:text-[var(--color-maya-blue)] dark:hover:text-[var(--color-maya-blue)] transition-colors">
+                            {user.name}
+                          </Link>
                           {user.birth_date && <span className="text-xs text-gray-400 font-medium tracking-wide">Nac: {new Date(user.birth_date).toLocaleDateString()}</span>}
                         </div>
                       </div>
@@ -250,12 +287,14 @@ export default function AdminsPage() {
                     <td className="py-4 px-6 text-right">
                       <Dropdown>
                         <DropdownTrigger>
-                          <button className="p-2 text-gray-400 hover:text-[var(--color-tropical-teal)] transition-colors rounded-lg hover:bg-[var(--color-tropical-teal)]/10 cursor-pointer">
+                          <button className="p-2 text-gray-400 hover:text-[var(--color-tropical-teal)] dark:hover:text-white transition-colors rounded-lg hover:bg-[var(--color-tropical-teal)]/10 dark:hover:bg-default-200 cursor-pointer">
                             <MoreVertical className="w-5 h-5" />
                           </button>
                         </DropdownTrigger>
                         <DropdownMenu aria-label="Acciones">
-                          <DropdownItem key="edit" onPress={() => handleOpenModal(user)}>Editar</DropdownItem>
+                          <DropdownItem key="view" href={`/admin/user/${user._id}`}>Ver Detalles</DropdownItem>
+                          <DropdownItem key="qr" href={`/admin/user/${user._id}#qr`}>Perfil QR</DropdownItem>
+                          <DropdownItem key="edit" onPress={() => handleOpenModal(user)}>Editar Rápido</DropdownItem>
                           {user.status === 'pending' ? (
                             <DropdownItem 
                               key="resend" 
@@ -277,6 +316,21 @@ export default function AdminsPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="p-4 border-t border-gray-100 dark:border-default-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-50/30 dark:bg-default-50/10">
+          <p className="text-sm text-gray-500">Mostrando {users.length} de {total} administradores</p>
+          <Pagination
+            total={totalPages}
+            initialPage={1}
+            page={page}
+            onChange={(p) => setPage(p)}
+            showControls
+            color="primary"
+            variant="flat"
+            size="sm"
+          />
         </div>
       </div>
 

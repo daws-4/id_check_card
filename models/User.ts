@@ -6,11 +6,18 @@ export interface IEmergencyContact {
   relationship: string;
 }
 
+export interface IResidenceInfo {
+  address: string;
+  city: string;
+  state: string;
+}
+
 export interface IUser extends Document {
   name: string;
   last_name?: string;
   email: string;
   password_hash?: string;
+  nfc_card_id?: string;
   has_nfc_card: boolean;
   birth_date?: Date;
   document_id?: string;
@@ -34,6 +41,8 @@ export interface IUser extends Document {
   emergency_contacts?: IEmergencyContact[];
   photo_url?: string;
   insurance_info?: string;
+  residence_info?: IResidenceInfo;
+  theme_preference: 'system' | 'light' | 'dark';
 }
 
 const UserSchema: Schema = new Schema({
@@ -41,6 +50,7 @@ const UserSchema: Schema = new Schema({
   last_name: { type: String },
   email: { type: String, required: true },
   password_hash: { type: String },
+  nfc_card_id: { type: String, unique: true, sparse: true },
   has_nfc_card: { type: Boolean, default: false },
   birth_date: { type: Date },
   document_id: { 
@@ -91,6 +101,12 @@ const UserSchema: Schema = new Schema({
   }],
   photo_url: { type: String },
   insurance_info: { type: String },
+  residence_info: {
+    address: { type: String },
+    city: { type: String },
+    state: { type: String }
+  },
+  theme_preference: { type: String, enum: ['system', 'light', 'dark'], default: 'system' }
 }, { timestamps: true });
 
 UserSchema.index({ email: 1, role: 1 }, { unique: true });

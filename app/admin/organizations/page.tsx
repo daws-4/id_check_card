@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/modal";
 import { Input } from "@heroui/input";
@@ -147,7 +148,7 @@ export default function OrganizationsPage() {
   return (
     <section>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h3 className="text-[var(--color-carbon-black)] dark:text-gray-100 text-2xl font-bold">Organizaciones</h3>
+        <h3 className="text-[var(--color-carbon-black)] dark:text-white text-2xl font-bold">Organizaciones</h3>
         <button 
           onClick={() => handleOpenModal()}
           className="bg-[var(--color-maya-blue)] hover:bg-[var(--color-tropical-teal)] text-white font-medium px-5 py-2.5 rounded-xl shadow-md shadow-[var(--color-maya-blue)]/30 transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer"
@@ -158,11 +159,11 @@ export default function OrganizationsPage() {
       </div>
 
       {/* Tabla de Organizaciones */}
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
+      <div className="bg-white dark:bg-[#1a1b1e] rounded-2xl shadow-sm border border-gray-100 dark:border-default-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[var(--color-lavender-mist)]/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/10">
+              <tr className="bg-[var(--color-lavender-mist)]/50 dark:bg-default-50/50 border-b border-gray-100 dark:border-default-100">
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Tipo</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">RIF</th>
@@ -170,7 +171,7 @@ export default function OrganizationsPage() {
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-white/10">
+            <tbody className="divide-y divide-gray-100 dark:divide-default-100">
               {loading ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-gray-500">
@@ -185,17 +186,17 @@ export default function OrganizationsPage() {
                 </tr>
               ) : (
                 organizations.map((org, idx) => (
-                  <tr key={org._id} className="hover:bg-[var(--color-lavender-mist)]/30 dark:hover:bg-white/5 transition-colors group">
+                  <tr key={org._id} className="hover:bg-[var(--color-lavender-mist)]/30 dark:hover:bg-default-100 transition-colors group">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${idx % 2 === 0 ? 'bg-[var(--color-tropical-teal)]/10 dark:bg-[var(--color-tropical-teal)]/20 text-[var(--color-tropical-teal)]' : 'bg-[var(--color-electric-sapphire)]/10 dark:bg-[var(--color-electric-sapphire)]/20 text-[var(--color-electric-sapphire)]'}`}>
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${idx % 2 === 0 ? 'bg-[var(--color-tropical-teal)]/10 text-[var(--color-tropical-teal)]' : 'bg-[var(--color-electric-sapphire)]/10 text-[var(--color-electric-sapphire)]'}`}>
                           {getInitials(org.name)}
                         </div>
-                        <span className="font-semibold text-[var(--color-carbon-black)] dark:text-gray-100">{org.name}</span>
+                        <Link href={`/org/${org._id}`} className="font-semibold text-[var(--color-carbon-black)] dark:text-white hover:text-[var(--color-tropical-teal)] dark:hover:text-[var(--color-tropical-teal)] transition-colors">{org.name}</Link>
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <span className={`px-3 py-1 text-xs font-medium rounded-full border ${idx % 2 === 0 ? 'bg-[var(--color-maya-blue)]/10 text-[var(--color-maya-blue)] border-[var(--color-maya-blue)]/20 dark:bg-[var(--color-maya-blue)]/20 dark:border-[var(--color-maya-blue)]/30' : 'bg-[var(--color-electric-sapphire)]/10 text-[var(--color-electric-sapphire)] border-[var(--color-electric-sapphire)]/20 dark:bg-[var(--color-electric-sapphire)]/20 dark:border-[var(--color-electric-sapphire)]/30'}`}>
+                      <span className={`px-3 py-1 text-xs font-medium rounded-full border ${idx % 2 === 0 ? 'bg-[var(--color-maya-blue)]/10 text-[var(--color-maya-blue)] border-[var(--color-maya-blue)]/20' : 'bg-[var(--color-electric-sapphire)]/10 text-[var(--color-electric-sapphire)] border-[var(--color-electric-sapphire)]/20'}`}>
                         {orgTypesTranslations[org.type] || org.type}
                       </span>
                     </td>
@@ -208,7 +209,7 @@ export default function OrganizationsPage() {
                     <td className="py-4 px-6 text-right">
                       <Dropdown>
                         <DropdownTrigger>
-                          <button className="p-2 text-gray-400 hover:text-[var(--color-tropical-teal)] transition-colors rounded-lg hover:bg-[var(--color-tropical-teal)]/10 cursor-pointer">
+                          <button className="p-2 text-gray-400 hover:text-[var(--color-tropical-teal)] dark:hover:text-white transition-colors rounded-lg hover:bg-[var(--color-tropical-teal)]/10 dark:hover:bg-default-200 cursor-pointer">
                             <MoreVertical className="w-5 h-5" />
                           </button>
                         </DropdownTrigger>
