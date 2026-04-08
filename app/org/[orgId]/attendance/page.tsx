@@ -146,26 +146,26 @@ export default function AttendancePage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-default-50 rounded-xl p-4 shadow-sm border border-default-100">
+        <div className="bg-content1 rounded-xl p-4 shadow-sm border border-divider">
           <p className="text-xs text-default-500 uppercase tracking-wider">Entradas</p>
           <p className="text-2xl font-bold text-primary mt-1">{totalEntries}</p>
         </div>
-        <div className="bg-white dark:bg-default-50 rounded-xl p-4 shadow-sm border border-default-100">
+        <div className="bg-content1 rounded-xl p-4 shadow-sm border border-divider">
           <p className="text-xs text-default-500 uppercase tracking-wider">Salidas</p>
           <p className="text-2xl font-bold text-secondary mt-1">{totalExits}</p>
         </div>
-        <div className="bg-white dark:bg-default-50 rounded-xl p-4 shadow-sm border border-default-100">
+        <div className="bg-content1 rounded-xl p-4 shadow-sm border border-divider">
           <p className="text-xs text-default-500 uppercase tracking-wider">A Tiempo</p>
           <p className="text-2xl font-bold text-success mt-1">{onTimeCount}</p>
         </div>
-        <div className="bg-white dark:bg-default-50 rounded-xl p-4 shadow-sm border border-default-100">
+        <div className="bg-content1 rounded-xl p-4 shadow-sm border border-divider">
           <p className="text-xs text-default-500 uppercase tracking-wider">Retrasos</p>
           <p className="text-2xl font-bold text-danger mt-1">{lateCount}</p>
         </div>
       </div>
 
       {/* Date Filters */}
-      <div className="flex items-end gap-3 bg-white dark:bg-default-50 p-4 rounded-xl shadow-sm border border-default-100">
+      <div className="flex items-end gap-3 bg-content1 p-4 rounded-xl shadow-sm border border-divider">
         <CalendarDays className="w-5 h-5 text-default-400 mb-2" />
         <Input
           label="Desde"

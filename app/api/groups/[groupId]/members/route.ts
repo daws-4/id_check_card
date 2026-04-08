@@ -43,6 +43,29 @@ export async function POST(req: Request, { params }: { params: Promise<{ groupId
 
     await connectDB();
 
+    // Validate user_type matches group type
+    const { Group } = await import("@/models/Group");
+    const { User } = await import("@/models/User");
+    
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    const user = await User.findById(user_id);
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const requiredType = group.type === 'work' ? 'worker' : 'student';
+    if (user.user_type && user.user_type !== requiredType) {
+      const groupLabel = group.type === 'work' ? 'trabajo' : 'estudio';
+      const userLabel = user.user_type === 'worker' ? 'trabajador' : 'estudiante';
+      return NextResponse.json({ 
+        error: `No se puede agregar un ${userLabel} a un grupo de ${groupLabel}` 
+      }, { status: 400 });
+    }
+
     // Check if member already exists
     const existing = await GroupMembership.findOne({ group_id: groupId, user_id });
     if (existing) {

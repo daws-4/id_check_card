@@ -90,7 +90,7 @@ export default function OrgBillingPage() {
 
       {/* Resumen */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-white/10 relative overflow-hidden">
+        <div className="bg-content1 rounded-2xl p-5 shadow-sm border border-divider relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl" />
           <div className="flex items-center justify-between mb-3">
             <p className="text-gray-500 dark:text-gray-400 font-medium text-xs">Pendiente de Pago</p>
@@ -98,7 +98,7 @@ export default function OrgBillingPage() {
           </div>
           <p className="text-2xl font-bold text-[var(--color-carbon-black)] dark:text-white">{formatCurrency(totalPending, cur)}</p>
         </div>
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-white/10 relative overflow-hidden">
+        <div className="bg-content1 rounded-2xl p-5 shadow-sm border border-divider relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl" />
           <div className="flex items-center justify-between mb-3">
             <p className="text-gray-500 dark:text-gray-400 font-medium text-xs">Total Pagado</p>
@@ -106,7 +106,7 @@ export default function OrgBillingPage() {
           </div>
           <p className="text-2xl font-bold text-[var(--color-carbon-black)] dark:text-white">{formatCurrency(totalPaid, cur)}</p>
         </div>
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-white/10 relative overflow-hidden">
+        <div className="bg-content1 rounded-2xl p-5 shadow-sm border border-divider relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-[var(--color-electric-sapphire)]/10 rounded-full blur-2xl" />
           <div className="flex items-center justify-between mb-3">
             <p className="text-gray-500 dark:text-gray-400 font-medium text-xs">Total Facturas</p>
@@ -117,11 +117,11 @@ export default function OrgBillingPage() {
       </div>
 
       {/* Tabla */}
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
+      <div className="bg-content1 rounded-2xl shadow-sm border border-divider overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[var(--color-lavender-mist)]/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/10">
+              <tr className="bg-[var(--color-lavender-mist)]/50 dark:bg-white/5 border-b border-divider">
                 <th className="py-4 px-5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Periodo</th>
                 <th className="py-4 px-5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">Usuarios</th>
                 <th className="py-4 px-5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">Lectores</th>
@@ -191,7 +191,7 @@ export default function OrgBillingPage() {
                       <DetailRow label="Estado" value={statusLabels[detail.status].label} />
                       <DetailRow label="Moneda" value={detail.currency} />
                     </div>
-                    <div className="border-t border-gray-100 dark:border-white/10 pt-3">
+                    <div className="border-t border-divider pt-3">
                       <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Desglose</p>
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
@@ -209,7 +209,7 @@ export default function OrgBillingPage() {
                       </div>
                     </div>
                     {(detail.paid_at || detail.payment_method) && (
-                      <div className="border-t border-gray-100 dark:border-white/10 pt-3">
+                      <div className="border-t border-divider pt-3">
                         <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Información de Pago</p>
                         <div className="grid grid-cols-2 gap-3">
                           {detail.payment_method && <DetailRow label="Método" value={detail.payment_method === "manual" ? "Efectivo" : detail.payment_method === "bank_transfer" ? "Transferencia" : detail.payment_method} />}

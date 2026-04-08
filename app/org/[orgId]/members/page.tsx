@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@heroui/table";
 import { Button } from "@heroui/button";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/modal";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
@@ -43,7 +42,7 @@ export default function MembersPage() {
   
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   
-  const [selectedKeys, setSelectedKeys] = useState<any>(new Set([]));
+  const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
   const [isBulkLoading, setIsBulkLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -185,14 +184,23 @@ export default function MembersPage() {
     }
   };
 
-  const handleBulkAction = async (action: 'delete' | 'assign_card' | 'enable_strict' | 'disable_strict') => {
-    let idsToProcess: string[] = [];
-
-    if (selectedKeys === "all") {
-      idsToProcess = memberships.map(m => action === 'delete' ? m._id : m.user_id._id);
+  const toggleAll = () => {
+    if (selectedMemberIds.size === memberships.length) {
+      setSelectedMemberIds(new Set());
     } else {
-      idsToProcess = Array.from(selectedKeys as Set<string>).map(key => key.toString());
+      setSelectedMemberIds(new Set(memberships.map(m => m._id)));
     }
+  };
+
+  const toggleMember = (id: string) => {
+    const next = new Set(selectedMemberIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedMemberIds(next);
+  };
+
+  const handleBulkAction = async (action: 'delete' | 'assign_card' | 'enable_strict' | 'disable_strict') => {
+    const idsToProcess = Array.from(selectedMemberIds);
 
     if (idsToProcess.length === 0) return;
 
@@ -206,7 +214,7 @@ export default function MembersPage() {
           body: JSON.stringify({ membershipIds: idsToProcess })
         });
         if (res.ok) {
-          setSelectedKeys(new Set());
+          setSelectedMemberIds(new Set());
           await fetchData();
         }
       } catch (err) {
@@ -218,7 +226,6 @@ export default function MembersPage() {
       if (!confirm(`¿Asignar tarjeta NFC a ${idsToProcess.length} miembro(s)?`)) return;
       try {
         setIsBulkLoading(true);
-        // Extract distinct user_ids from selected membership IDs
         const membershipsMap = new Map(memberships.map(m => [m._id, m.user_id._id]));
         const userIds = idsToProcess.map(mId => membershipsMap.get(mId)).filter(Boolean);
         
@@ -228,7 +235,7 @@ export default function MembersPage() {
           body: JSON.stringify({ action: 'assign_card', userIds })
         });
         if (res.ok) {
-          setSelectedKeys(new Set());
+          setSelectedMemberIds(new Set());
           await fetchData();
         }
       } catch (err) {
@@ -250,7 +257,7 @@ export default function MembersPage() {
           body: JSON.stringify({ action, userIds })
         });
         if (res.ok) {
-          setSelectedKeys(new Set());
+          setSelectedMemberIds(new Set());
           await fetchData();
         }
       } catch (err) {
@@ -281,7 +288,7 @@ export default function MembersPage() {
     }
   };
 
-  const selectedCount = selectedKeys === "all" ? memberships.length : (selectedKeys as Set<string>).size;
+  const selectedCount = selectedMemberIds.size;
 
   return (
     <div className="flex flex-col gap-4">
@@ -329,68 +336,92 @@ export default function MembersPage() {
         </div>
       </div>
 
-      <Table 
-        aria-label="Members table" 
-        selectionMode="multiple" 
-        selectedKeys={selectedKeys} 
-        onSelectionChange={setSelectedKeys}
-      >
-        <TableHeader>
-          <TableColumn>NOMBRE</TableColumn>
-          <TableColumn>CORREO</TableColumn>
-          <TableColumn>ESTADO</TableColumn>
-          <TableColumn>TIENE TARJETA</TableColumn>
-          <TableColumn>ROL</TableColumn>
-          <TableColumn>SE UNIÓ</TableColumn>
-          <TableColumn>ACCIONES</TableColumn>
-        </TableHeader>
-        <TableBody
-          items={memberships}
-          emptyContent={loading ? <Spinner /> : "No se encontraron miembros en esta organización."}
-        >
-          {(membership) => (
-            <TableRow key={membership._id}>
-              <TableCell className="font-medium">
-                <Link href={`/admin/user/${membership.user_id?._id}`} className="hover:text-primary transition-colors">
-                  {membership.user_id?.name || "Unknown"} {membership.user_id?.last_name || ""}
-                </Link>
-              </TableCell>
-              <TableCell>{membership.user_id?.email || "N/A"}</TableCell>
-              <TableCell>{getStatusBadge(membership.user_id?.status)}</TableCell>
-              <TableCell>
-                <span className={`px-2 py-1 rounded-full text-xs ${membership.user_id?.has_nfc_card ? 'bg-success/20 text-success' : 'bg-default-200'}`}>
-                  {membership.user_id?.has_nfc_card ? 'Sí' : 'No'}
-                </span>
-              </TableCell>
-              <TableCell>
-                <span className={`capitalize px-2 py-1 rounded-full text-xs ${membership.role === 'admin' ? 'bg-primary/20 text-primary' : 'bg-default-200'}`}>
-                  {membership.role}
-                </span>
-              </TableCell>
-              <TableCell className="text-default-500 text-sm">
-                {new Date(membership.createdAt).toLocaleDateString()}
-              </TableCell>
-              <TableCell>
-                <Dropdown>
-                  <DropdownTrigger>
-                    <button className="p-1.5 text-default-400 hover:text-primary transition-colors rounded-lg hover:bg-primary/10 cursor-pointer">
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                  </DropdownTrigger>
-                  <DropdownMenu aria-label="Acciones de miembro">
-                    <DropdownItem key="detail" href={`/admin/user/${membership.user_id?._id}`}>Ver / Editar Datos</DropdownItem>
-                    <DropdownItem key="qr" href={`/admin/user/${membership.user_id?._id}#qr`}>Perfil QR</DropdownItem>
-                    <DropdownItem key="remove" className="text-danger" color="danger" onPress={() => handleRemoveMember(membership._id)}>Quitar de Org</DropdownItem>
-                  </DropdownMenu>
-                </Dropdown>
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+      <div className="bg-content1 rounded-2xl shadow-sm border border-divider overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[900px]">
+            <thead>
+              <tr className="bg-default-50/50 border-b border-divider">
+                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider w-12">
+                  <Checkbox
+                    isSelected={memberships.length > 0 && selectedMemberIds.size === memberships.length}
+                    onValueChange={toggleAll}
+                  />
+                </th>
+                <th className="py-4 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">NOMBRE</th>
+                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">CORREO</th>
+                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">ESTADO</th>
+                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">TIENE TARJETA</th>
+                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">ROL</th>
+                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">SE UNIÓ</th>
+                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-default-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center">
+                    <Spinner />
+                  </td>
+                </tr>
+              ) : memberships.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-gray-500">
+                    No se encontraron miembros en esta organización.
+                  </td>
+                </tr>
+              ) : (
+                memberships.map((membership) => (
+                  <tr key={membership._id} className="hover:bg-default-50/50 transition-colors group">
+                    <td className="py-4 px-6">
+                      <Checkbox
+                        isSelected={selectedMemberIds.has(membership._id)}
+                        onValueChange={() => toggleMember(membership._id)}
+                      />
+                    </td>
+                    <td className="py-4 px-4 font-medium">
+                      <Link href={`/org/${orgId}/members/${membership.user_id?._id}`} className="hover:text-primary transition-colors">
+                        {membership.user_id?.name || "Unknown"} {membership.user_id?.last_name || ""}
+                      </Link>
+                    </td>
+                    <td className="py-4 px-6 text-sm">{membership.user_id?.email || "N/A"}</td>
+                    <td className="py-4 px-6">{getStatusBadge(membership.user_id?.status)}</td>
+                    <td className="py-4 px-6">
+                      <span className={`px-2 py-1 rounded-full text-xs ${membership.user_id?.has_nfc_card ? 'bg-success/20 text-success' : 'bg-default-200'}`}>
+                        {membership.user_id?.has_nfc_card ? 'Sí' : 'No'}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className={`capitalize px-2 py-1 rounded-full text-xs ${membership.role === 'admin' ? 'bg-primary/20 text-primary' : 'bg-default-200'}`}>
+                        {membership.role}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-default-500 text-sm">
+                      {new Date(membership.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <Dropdown>
+                        <DropdownTrigger>
+                          <button className="p-1.5 text-default-400 hover:text-primary transition-colors rounded-lg hover:bg-primary/10 cursor-pointer">
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                        </DropdownTrigger>
+                        <DropdownMenu aria-label="Acciones de miembro">
+                          <DropdownItem key="detail" href={`/org/${orgId}/members/${membership.user_id?._id}`}>Ver / Editar Datos</DropdownItem>
+                          <DropdownItem key="qr" href={`/org/${orgId}/members/${membership.user_id?._id}#qr`}>Perfil QR</DropdownItem>
+                          <DropdownItem key="remove" className="text-danger" color="danger" onPress={() => handleRemoveMember(membership._id)}>Quitar de Org</DropdownItem>
+                        </DropdownMenu>
+                      </Dropdown>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Pagination */}
-      <div className="p-4 bg-white dark:bg-[#1a1b1e] rounded-2xl shadow-sm border border-gray-100 dark:border-default-100 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="p-4 bg-content1 rounded-2xl shadow-sm border border-divider flex flex-col md:flex-row justify-between items-center gap-4">
         <p className="text-sm text-gray-500">Mostrando {memberships.length} de {total} miembros</p>
         <Pagination
           total={totalPages}

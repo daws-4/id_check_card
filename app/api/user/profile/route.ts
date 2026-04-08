@@ -5,6 +5,7 @@ import connectDB from "@/config/db";
 import { User } from "@/models/User";
 import { Membership } from "@/models/Membership";
 import { Organization } from "@/models/Organization";
+import { ProfileEditRequest } from "@/models/ProfileEditRequest";
 
 async function canEditProfile(userId: string): Promise<boolean> {
   const memberships = await Membership.find({ user_id: userId });
@@ -27,10 +28,12 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     const editable = await canEditProfile(userId);
+    const pendingRequest = await ProfileEditRequest.findOne({ user_id: userId, status: 'pending' });
 
     return NextResponse.json({
       user,
       canEditProfile: editable,
+      hasPendingRequest: !!pendingRequest
     });
   } catch (error) {
     console.error("Profile GET error:", error);

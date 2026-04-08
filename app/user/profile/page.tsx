@@ -17,6 +17,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isRequestMode, setIsRequestMode] = useState(false);
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -31,6 +33,7 @@ export default function ProfilePage() {
       .then((data) => {
         setUser(data.user);
         setCanEdit(data.canEditProfile);
+        setHasPendingRequest(data.hasPendingRequest);
         // Populate form
         setName(data.user.name || "");
         setLastName(data.user.last_name || "");
@@ -50,8 +53,11 @@ export default function ProfilePage() {
     setSaving(true);
     setMessage(null);
     try {
-      const res = await fetch("/api/user/profile", {
-        method: "PUT",
+      const url = isRequestMode ? "/api/user/profile/request" : "/api/user/profile";
+      const method = isRequestMode ? "POST" : "PUT";
+      
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name || undefined,
@@ -64,8 +70,14 @@ export default function ProfilePage() {
 
       const result = await res.json();
       if (res.ok) {
-        setMessage({ type: "success", text: "Perfil actualizado exitosamente" });
-        setUser(result.user);
+        if (isRequestMode) {
+          setMessage({ type: "success", text: "Solicitud de edición enviada exitosamente" });
+          setHasPendingRequest(true);
+          setIsRequestMode(false);
+        } else {
+          setMessage({ type: "success", text: "Perfil actualizado exitosamente" });
+          setUser(result.user);
+        }
       } else {
         setMessage({ type: "error", text: result.error || "Error al actualizar" });
       }
@@ -121,15 +133,42 @@ export default function ProfilePage() {
       </Card>
 
       {/* Edit Permission Notice */}
-      {!canEdit && (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
-          <Lock className="w-5 h-5 flex-shrink-0" />
+      {hasPendingRequest && (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800">
+          <Shield className="w-5 h-5 flex-shrink-0" />
           <div>
-            <p className="font-medium text-sm">Edición restringida</p>
+            <p className="font-medium text-sm">Solicitud en proceso</p>
             <p className="text-xs">
-              Tu organización no permite editar la información personal. Contacta a un administrador.
+              Tienes una solicitud de actualización de perfil pendiente de aprobación por los administradores.
             </p>
           </div>
+        </div>
+      )}
+
+      {!canEdit && !hasPendingRequest && !isRequestMode && (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
+          <Lock className="w-5 h-5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="font-medium text-sm">Edición restringida</p>
+            <p className="text-xs">
+              Tu organización no permite editar tu información personal. Puedes solicitar a un administrador que la cambie.
+            </p>
+          </div>
+          <Button size="sm" color="warning" variant="flat" onPress={() => setIsRequestMode(true)}>
+            Solicitar Edición
+          </Button>
+        </div>
+      )}
+      
+      {!canEdit && !hasPendingRequest && isRequestMode && (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-primary-50 border border-primary-200 text-primary-800 justify-between">
+           <div>
+             <p className="font-medium text-sm">Modo de Solicitud</p>
+             <p className="text-xs">Edita los campos que desees y luego envía la solicitud para su aprobación.</p>
+           </div>
+           <Button size="sm" color="default" variant="flat" onPress={() => { setIsRequestMode(false); setMessage(null); }}>
+             Cancelar
+           </Button>
         </div>
       )}
 
@@ -171,10 +210,10 @@ export default function ProfilePage() {
               label="Nombre"
               value={name}
               onValueChange={setName}
-              isReadOnly={!canEdit}
+              isReadOnly={!canEdit && !isRequestMode}
               variant="bordered"
               classNames={
-                canEdit
+                canEdit || isRequestMode
                   ? {
                       inputWrapper:
                         "border-[var(--color-maya-blue)]/50 focus-within:border-[var(--color-maya-blue)]",
@@ -186,10 +225,10 @@ export default function ProfilePage() {
               label="Apellido"
               value={lastName}
               onValueChange={setLastName}
-              isReadOnly={!canEdit}
+              isReadOnly={!canEdit && !isRequestMode}
               variant="bordered"
               classNames={
-                canEdit
+                canEdit || isRequestMode
                   ? {
                       inputWrapper:
                         "border-[var(--color-maya-blue)]/50 focus-within:border-[var(--color-maya-blue)]",
@@ -205,10 +244,10 @@ export default function ProfilePage() {
               type="date"
               value={birthDate}
               onValueChange={setBirthDate}
-              isReadOnly={!canEdit}
+              isReadOnly={!canEdit && !isRequestMode}
               variant="bordered"
               classNames={
-                canEdit
+                canEdit || isRequestMode
                   ? {
                       inputWrapper:
                         "border-[var(--color-maya-blue)]/50 focus-within:border-[var(--color-maya-blue)]",
@@ -220,10 +259,10 @@ export default function ProfilePage() {
               label="Cédula / Documento"
               value={documentId}
               onValueChange={setDocumentId}
-              isReadOnly={!canEdit}
+              isReadOnly={!canEdit && !isRequestMode}
               variant="bordered"
               classNames={
-                canEdit
+                canEdit || isRequestMode
                   ? {
                       inputWrapper:
                         "border-[var(--color-maya-blue)]/50 focus-within:border-[var(--color-maya-blue)]",
@@ -233,7 +272,7 @@ export default function ProfilePage() {
             />
           </div>
 
-          {canEdit ? (
+          {canEdit || isRequestMode ? (
             <Select
               label="Tipo de Sangre"
               selectedKeys={bloodType ? new Set([bloodType]) : new Set()}
@@ -278,7 +317,7 @@ export default function ProfilePage() {
           )}
 
           {/* Save Button */}
-          {canEdit && (
+          {(canEdit || isRequestMode) && !hasPendingRequest && (
             <Button
               color="primary"
               className="w-full bg-gradient-to-r from-[var(--color-electric-sapphire)] to-[var(--color-tropical-teal)] text-white shadow-lg text-md font-medium"
@@ -287,7 +326,7 @@ export default function ProfilePage() {
               onPress={handleSave}
               startContent={!saving && <Save className="w-4 h-4" />}
             >
-              Guardar Cambios
+              {isRequestMode ? "Enviar Solicitud de Actualización" : "Guardar Cambios"}
             </Button>
           )}
         </CardBody>

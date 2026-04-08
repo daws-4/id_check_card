@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       deleteRule: null, // Only via superuser auth (server-side)
       fields: [
         {
-          name: 'mongo_user_id',
+          name: 'user_mongo_id',
           type: 'text',
           required: true,
         },

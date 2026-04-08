@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     // Check if user already has a photo record of this type - update instead of creating duplicate
     let existingRecord = null;
     try {
-      existingRecord = await pb.collection('IDCHECKCARD_user_photos').getFirstListItem(
+      existingRecord = await pb.collection('user_photos').getFirstListItem(
         `user_mongo_id="${userId}"`
       );
     } catch {
@@ -66,14 +66,14 @@ export async function POST(req: Request) {
     let record;
     if (existingRecord) {
       // Update existing record
-      record = await pb.collection('IDCHECKCARD_user_photos').update(existingRecord.id, pbFormData);
+      record = await pb.collection('user_photos').update(existingRecord.id, pbFormData);
     } else {
       // Create new record
-      record = await pb.collection('IDCHECKCARD_user_photos').create(pbFormData);
+      record = await pb.collection('user_photos').create(pbFormData);
     }
 
     // Build the public URL and save to MongoDB user
-    const photoUrl = getPublicPbFileUrl('IDCHECKCARD_user_photos', record.id, record['photo']);
+    const photoUrl = getPublicPbFileUrl('user_photos', record.id, record['photo']);
 
     // Update user's photo_url in MongoDB if this is a profile photo
     if (photoType === 'profile') {

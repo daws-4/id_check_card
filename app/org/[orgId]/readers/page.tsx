@@ -124,35 +124,35 @@ export default function OrgReadersPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+        <div className="bg-content1 rounded-2xl p-5 border border-divider shadow-sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
               <Wifi className="w-5 h-5 text-blue-500" />
             </div>
-            <span className="text-sm text-gray-500 font-medium">Dispositivos Totales</span>
+            <span className="text-sm text-default-500 font-medium">Dispositivos Totales</span>
           </div>
-          <p className="text-3xl font-bold text-gray-800">{totalReaders}</p>
+          <p className="text-3xl font-bold text-foreground">{totalReaders}</p>
         </div>
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+        <div className="bg-content1 rounded-2xl p-5 border border-divider shadow-sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
               <Activity className="w-5 h-5 text-emerald-500" />
             </div>
-            <span className="text-sm text-gray-500 font-medium">Activos</span>
+            <span className="text-sm text-default-500 font-medium">Activos</span>
           </div>
-          <p className="text-3xl font-bold text-gray-800">
+          <p className="text-3xl font-bold text-foreground">
             {activeReaders}
-            <span className="text-sm text-gray-400 font-normal ml-1">/ {totalReaders}</span>
+            <span className="text-sm text-default-400 font-normal ml-1">/ {totalReaders}</span>
           </p>
         </div>
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+        <div className="bg-content1 rounded-2xl p-5 border border-divider shadow-sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
               <Activity className="w-5 h-5 text-violet-500" />
             </div>
-            <span className="text-sm text-gray-500 font-medium">Lecturas Hoy</span>
+            <span className="text-sm text-default-500 font-medium">Lecturas Hoy</span>
           </div>
-          <p className="text-3xl font-bold text-gray-800">{totalReadingsToday}</p>
+          <p className="text-3xl font-bold text-foreground">{totalReadingsToday}</p>
         </div>
       </div>
 

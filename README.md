@@ -329,21 +329,23 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 ### Panel de Organización
 - [x] **Dashboard con métricas reales**: Verificar que "Miembros Activos" cuenta solo los miembros de la org actual y "Asistencia Hoy" cuenta solo `entradas` del día actual.
 - [x] **Actividad Reciente**: Verificar que se muestran los 5 registros de asistencia más recientes con su usuario y lector correspondientes.
-- [ ] **Gestión de miembros**: Probar el autocompletado de búsqueda por nombre, cédula y correo.
-- [ ] **Crear grupos**: Verificar creación de grupos de estudio y trabajo.
-- [ ] **Asignar líderes**: Verificar asignación y permisos resultantes.
-- [ ] **Asignar horarios**: Verificar asociación correcta con grupos.
-- [ ] **Asignar tareas**: Verificar tareas con fecha límite y repetitivas.
-- [ ] **Reportes de asistencia**: Verificar que los logs se muestran correctamente.
-- [ ] **Asociación de lectores**: Verificar vinculación de lectores a organización o grupo específico.
+- [x] **Gestión de miembros**: Probar el autocompletado de búsqueda por nombre, cédula y correo.
+- [x] **Crear grupos**: Verificar creación de grupos de estudio y trabajo.
+- [x] **Asignar líderes**: Verificar asignación y permisos resultantes.
+- [x] **Asignar horarios**: Verificar asociación correcta con grupos.
+- [x] **Asignar tareas**: Verificar tareas con fecha límite y repetitivas.
+- [x] **Formulario Tareas Repetitivas**: Opciones añadidas para permitir frecuencias semanales, mensuales o anuales en las tareas.
+- [x] **Reportes de asistencia**: Verificar que los logs se muestran correctamente.
+- [x] **Asociación de lectores**: Verificar vinculación de lectores a organización o grupo específico.
 
 ### Panel de Usuario
-- [ ] **Visualización de horarios**: Verificar que muestra horarios correctos para el usuario autenticado.
-- [ ] **Visualización de tareas**: Verificar lista de tareas asignadas.
-- [ ] **Completar tareas**: Verificar marcado manual como completada.
-- [ ] **Métricas de cumplimiento**: Verificar cálculos de tiempo dentro, tiempo extra, retraso.
-- [ ] **Motor Estricto (Visual)**: Si un usuario tiene habilitado el estricto, el dashboard debe convertir y mutar de "Horas" hacia "Horas Cumplidas: 3 / 4 h" e impedir el recuento de horas extras.
-- [ ] **Edición de perfil**: Verificar edición cuando la organización lo permite y bloqueo cuando no.
+- [x] **Visualización de horarios**: Verificar que muestra horarios correctos para el usuario autenticado.
+- [x] **Visualización de tareas**: Verificar lista de tareas asignadas.
+- [x] **Completar tareas**: Verificar marcado manual como completada.
+- [x] **Métricas de cumplimiento**: Verificar cálculos de tiempo dentro, tiempo extra, retraso.
+- [x] **Motor Estricto (Visual)**: Si un usuario tiene habilitado el estricto, el dashboard debe convertir y mutar de "Horas" hacia "Horas Cumplidas: 3 / 4 h" e impedir el recuento de horas extras.
+- [x] **Edición de perfil**: Verificar edición cuando la organización lo permite y bloqueo cuando no.
+- [x] **Solicitud de Edición de Perfil**: Verificar que se puede solicitar edición de perfil y se apruebe si todas las organizaciones lo aprueban.
 
 ### Emails y Transaccionales (Resend)
 - [x] **Validación de API Key**: Verificar que la instancia de `Resend` inicia correctamente sin errores de autenticación.
@@ -375,32 +377,32 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [x] **Payload completo**: Verificar que el payload enviado a n8n incluye `channels[]`, `message`, `recipient` (con todos los campos) y `metadata`.
 
 ### Perfil Digital QR (Verificación Pública)
-- [ ] **Acceso sin login**: Abrir `/verify/[orgId]/[userId]` sin sesión iniciada y verificar que carga correctamente.
-- [ ] **Datos correctos**: Verificar que muestra nombre, cédula, tipo de sangre, organización y contactos de emergencia.
-- [ ] **Click-to-call**: Verificar que los contactos de emergencia tienen links `tel:` funcionales.
-- [ ] **Usuario inexistente**: Acceder con un `userId` inválido y verificar que retorna error 404 con UI de "Verificación Fallida".
-- [ ] **Usuario sin membresía**: Acceder con un `userId` válido pero `orgId` donde no tiene membresía, verificar 404.
-- [ ] **Banner de estado**: Verificar que usuarios `active` muestran "USUARIO VERIFICADO" (verde) y `pending` muestran "CUENTA PENDIENTE" (amarillo).
-- [ ] **Foto de perfil**: Subir una foto via PocketBase y verificar que aparece en el perfil QR.
+- [x] **Acceso sin login**: Abrir `/verify/[orgId]/[userId]` sin sesión iniciada y verificar que carga correctamente.
+- [x] **Datos correctos**: Verificar que muestra nombre, cédula, tipo de sangre, organización y contactos de emergencia.
+- [x] **Click-to-call**: Verificar que los contactos de emergencia tienen links `tel:` funcionales.
+- [x] **Usuario inexistente**: Acceder con un `userId` inválido y verificar que retorna error 404 con UI de "Verificación Fallida".
+- [x] **Usuario sin membresía**: Acceder con un `userId` válido pero `orgId` donde no tiene membresía, verificar 404.
+- [x] **Banner de estado**: Verificar que usuarios `active` muestran "USUARIO VERIFICADO" (verde) y `pending` muestran "CUENTA PENDIENTE" (amarillo).
+- [x] **Foto de perfil**: Subir una foto via PocketBase y verificar que aparece en el perfil QR.
 
 ### Suite de Reportes (Excel + PDF)
-- [ ] **Exportación Excel básica**: Descargar Excel desde la vista de reportes sin filtros y verificar que contiene todos los registros con columnas correctas.
-- [ ] **Exportación Excel con filtros**: Aplicar rango de fechas y verificar que el Excel solo contiene registros del rango.
-- [ ] **Exportación PDF básica**: Descargar PDF y verificar que incluye las métricas de resumen y la tabla de registros.
-- [ ] **Exportación PDF con filtros**: Aplicar rango de fechas y verificar que el PDF refleja los filtros.
-- [ ] **Límite de seguridad**: Verificar que Excel no exporta más de 5000 registros.
-- [ ] **Nombre del archivo**: Verificar que el nombre incluye la organización y el rango de fechas.
+- [x] **Exportación Excel básica**: Descargar Excel desde la vista de reportes sin filtros y verificar que contiene todos los registros con columnas correctas.
+- [x] **Exportación Excel con filtros**: Aplicar rango de fechas y verificar que el Excel solo contiene registros del rango.
+- [x] **Exportación PDF básica**: Descargar PDF y verificar que incluye las métricas de resumen y la tabla de registros.
+- [x] **Exportación PDF con filtros**: Aplicar rango de fechas y verificar que el PDF refleja los filtros.
+- [x] **Límite de seguridad**: Verificar que Excel no exporta más de 5000 registros.
+- [x] **Nombre del archivo**: Verificar que el nombre incluye la organización y el rango de fechas.
 - [ ] **Puppeteer en producción**: Verificar que Puppeteer funciona correctamente en el entorno de despliegue (Docker/Coolify). Nota: puede requerir configuración específica de Chrome headless.
 
 ### PocketBase (Storage de Imágenes)
-- [ ] **Conexión a PocketBase**: Verificar que `getPbAdmin()` autentica correctamente con las credenciales de `_superusers` en `images.enlaredve.com`.
-- [ ] **Setup de colección**: Ejecutar `POST /api/pocketbase/setup` y verificar que la colección `user_photos` se crea en PocketBase con los campos y reglas correctas.
-- [ ] **Setup idempotente**: Ejecutar el setup dos veces y verificar que la segunda vez retorna `created: false` sin error.
-- [ ] **Subida de foto**: Subir una foto via `POST /api/pocketbase/upload` y verificar que el registro se crea en PocketBase y `photo_url` se actualiza en MongoDB.
-- [ ] **Actualización de foto**: Subir una segunda foto del mismo tipo para el mismo usuario y verificar que actualiza el registro existente (no crea duplicado).
-- [ ] **Acceso público**: Verificar que la URL generada (`https://images.enlaredve.com/api/files/user_photos/...`) es accesible sin autenticación.
-- [ ] **Permisos**: Verificar que solo `org_admin` y `superadmin` pueden subir fotos (usuarios normales reciben 403).
-- [ ] **Validación de formato**: Intentar subir un archivo no permitido (ej. `.pdf`) y verificar que PocketBase lo rechaza.
+- [x] **Conexión a PocketBase**: Verificar que `getPbAdmin()` autentica correctamente con las credenciales de `_superusers` en `images.enlaredve.com`.
+- [x] **Setup de colección**: Ejecutar `POST /api/pocketbase/setup` y verificar que la colección `user_photos` se crea en PocketBase con los campos y reglas correctas.
+- [x] **Setup idempotente**: Ejecutar el setup dos veces y verificar que la segunda vez retorna `created: false` sin error.
+- [x] **Subida de foto**: Subir una foto via `POST /api/pocketbase/upload` y verificar que el registro se crea en PocketBase y `photo_url` se actualiza en MongoDB.
+- [x] **Actualización de foto**: Subir una segunda foto del mismo tipo para el mismo usuario y verificar que actualiza el registro existente (no crea duplicado).
+- [x] **Acceso público**: Verificar que la URL generada (`https://images.enlaredve.com/api/files/user_photos/...`) es accesible sin autenticación.
+- [x] **Permisos**: Verificar que solo `superadmin` pueden subir fotos (usuarios normales reciben 403).
+- [x] **Validación de formato**: Intentar subir un archivo no permitido (ej. `.pdf`) y verificar que PocketBase lo rechaza.
 
 ---
 

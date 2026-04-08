@@ -13,19 +13,20 @@ import { Switch } from "@heroui/switch";
 import { Spinner } from "@heroui/spinner";
 import { ArrowLeft, User as UserIcon, Contact, Activity, QrCode, ExternalLink, Building2, Copy, Check, HeartPulse, ShieldAlert, Upload, Trash2, CreditCard, ZoomIn, Mail, Key, ShieldCheck } from "lucide-react";
 
-export default function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgId: string; userId: string }> }) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const { isOpen: isPwdOpen, onOpen: onPwdOpen, onOpenChange: onPwdOpenChange } = useDisclosure();
   const [zoom, setZoom] = useState(1);
   const [newPassword, setNewPassword] = useState("");
   const [isChangingPwd, setIsChangingPwd] = useState(false);
   const resolvedParams = use(params);
-  const { id } = resolvedParams;
+  const { orgId, userId: id } = resolvedParams;
   const router = useRouter();
 
   const [user, setUser] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
   const [memberships, setMemberships] = useState<any[]>([]);
+  const [profileRequest, setProfileRequest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -60,11 +61,12 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [userRes, logRes, membRes, sessionRes] = await Promise.all([
+      const [userRes, logRes, membRes, sessionRes, profileReqRes] = await Promise.all([
         fetch(`/api/users/${id}`),
         fetch(`/api/attendance?user_id=${id}`),
         fetch(`/api/memberships?user_id=${id}`),
-        fetch(`/api/auth/session`)
+        fetch(`/api/auth/session`),
+        fetch(`/api/users/${id}/profile-request`)
       ]);
       
       if (sessionRes.ok) {
@@ -96,10 +98,15 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         });
       }
       
+      
       if (logRes.ok) setLogs(await logRes.json());
       if (membRes.ok) {
         const membData = await membRes.json();
         setMemberships(membData.memberships || []);
+      }
+      if (profileReqRes.ok) {
+        const reqData = await profileReqRes.json();
+        setProfileRequest(reqData.request || null);
       }
     } catch (error) {
       console.error(error);
@@ -127,7 +134,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         const data = await res.json();
         setFormData({ ...formData, photo_url: data.photo_url });
         alert("Foto actualizada y vinculada correctamente en Pocketbase");
-        fetchData(); // Refrescar para ver datos actualizados
+        fetchData();
       } else {
         const err = await res.json();
         alert(err.error || "Error al subir fotografía");
@@ -196,14 +203,12 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     if (!confirm("¿Seguro que deseas eliminar la foto de este usuario?")) return;
     setSaving(true);
     try {
-      // 1. First, attempt to delete from PocketBase
       await fetch("/api/pocketbase/photo", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: id }),
       });
 
-      // 2. Then remove from MongoDB
       const res = await fetch(`/api/users/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -211,10 +216,9 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
       });
       if (res.ok) {
         setFormData({ ...formData, photo_url: "" });
-        // alert("Foto eliminada correctamente");
       } else {
         const err = await res.json();
-        alert(err.error || "Error al eliminar la foto de mongo");
+        alert(err.error || "Error al eliminar la foto");
       }
     } catch (e) {
       console.error(e);
@@ -229,7 +233,6 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     try {
       const payload: any = { ...formData };
       
-      // Limpiar contactos vacíos
       if (payload.emergency_contacts) {
         payload.emergency_contacts = payload.emergency_contacts.filter((c: any) => c.name || c.phone || c.relationship);
       }
@@ -252,14 +255,31 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     setSaving(false);
   };
 
-  const getVerifyUrl = (orgId: string) => {
-    const base = typeof window !== "undefined" ? window.location.origin : "";
-    return `${base}/verify/${orgId}/${id}`;
+  const handleProfileRequest = async (action: 'approve' | 'reject') => {
+    setSaving(true);
+    try {
+       const res = await fetch(`/api/users/${id}/profile-request/approve?organization_id=${orgId}&action=${action}`, { method: 'POST' });
+       if (res.ok) {
+         alert("Acción realizada con éxito");
+         fetchData();
+       } else {
+         const err = await res.json();
+         alert(err.error || "Error procesando solicitud");
+       }
+    } catch(e) { 
+       console.error(e);
+    }
+    setSaving(false);
   };
 
-  const handleCopyLink = (orgId: string) => {
-    navigator.clipboard.writeText(getVerifyUrl(orgId));
-    setCopiedOrgId(orgId);
+  const getVerifyUrl = (vOrgId: string) => {
+    const base = typeof window !== "undefined" ? window.location.origin : "";
+    return `${base}/verify/${vOrgId}/${id}`;
+  };
+
+  const handleCopyLink = (vOrgId: string) => {
+    navigator.clipboard.writeText(getVerifyUrl(vOrgId));
+    setCopiedOrgId(vOrgId);
     setTimeout(() => setCopiedOrgId(null), 2000);
   };
 
@@ -275,13 +295,15 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     return <div className="text-gray-500 text-center py-12">Usuario no encontrado.</div>;
   }
 
+  const isSuperAdmin = sessionRole === 'superadmin';
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white dark:bg-[#1a1b1e] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-default-100">
+      <div className="flex items-center justify-between bg-content1 p-5 rounded-2xl shadow-sm border border-divider">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => router.back()} 
+            onClick={() => router.push(`/org/${orgId}/members`)} 
             className="p-2 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-500 rounded-xl transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -336,6 +358,34 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         </div>
       </div>
 
+      {profileRequest && !profileRequest.approvals?.[orgId] && (
+        <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary text-primary p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <ShieldAlert className="w-8 h-8 flex-shrink-0" />
+            <div>
+              <p className="font-bold text-lg">Solicitud de Edición de Perfil Pendiente</p>
+              <p className="text-sm">Este usuario ha solicitado cambios en sus datos personales. Si las demás organizaciones donde el usuario está registrado también aprueban la solicitud, los cambios se harán efectivos.</p>
+            </div>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <Button color="primary" onPress={() => handleProfileRequest('approve')} isLoading={saving}>Aprobar ({Object.keys(profileRequest.requested_changes).length} cambios)</Button>
+            <Button color="danger" variant="flat" onPress={() => handleProfileRequest('reject')} isLoading={saving}>Rechazar</Button>
+          </div>
+        </div>
+      )}
+
+      {profileRequest && profileRequest.approvals?.[orgId] && (
+        <div className="bg-success-50 dark:bg-success-900/20 border border-success text-success p-4 rounded-xl flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <Check className="w-6 h-6 flex-shrink-0" />
+            <div>
+              <p className="font-bold">Solicitud de Edición Aprobada por ti</p>
+              <p className="text-sm">Falta la aprobación de otras organizaciones para completar la solicitud.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <Tabs 
         aria-label="Opciones de usuario" 
@@ -350,7 +400,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
       >
         <Tab key="info" title={<div className="flex items-center gap-2"><Contact className="w-4 h-4"/><span>Información</span></div>}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
-            <Card className="shadow-sm border border-gray-100 dark:border-default-100 bg-white dark:bg-[#1a1b1e]">
+            <Card className="shadow-sm border border-divider bg-content1">
               <CardBody className="p-6 space-y-4">
                 <h4 className="font-semibold text-gray-700 dark:text-gray-300 border-b border-divider pb-2 mb-4">Datos Personales</h4>
                 <div className="grid grid-cols-2 gap-4">
@@ -368,8 +418,8 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
               </CardBody>
             </Card>
 
-            {sessionRole === 'superadmin' && (
-              <Card className="shadow-sm border border-gray-100 dark:border-default-100 bg-white dark:bg-[#1a1b1e]">
+            {isSuperAdmin && (
+              <Card className="shadow-sm border border-divider bg-content1">
                 <CardBody className="p-6 space-y-4">
                   <h4 className="font-semibold text-gray-700 dark:text-gray-300 border-b border-divider pb-2 mb-4">Fotografía Facial</h4>
                   <div className="flex flex-col gap-3">
@@ -429,16 +479,11 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
               </CardBody>
             </Card>
             )}
-            <Card className="shadow-sm border border-gray-100 dark:border-default-100 bg-white dark:bg-[#1a1b1e] md:col-span-2">
-              <CardBody className="p-6 space-y-4">
-                <h4 className="font-semibold text-gray-700 dark:text-gray-300 border-b border-divider pb-2 mb-4">Configuración Avanzada</h4>
-                
-                <Select label="Rol de Sistema" variant="bordered" selectedKeys={[formData.role]} onChange={(e) => setFormData({...formData, role: e.target.value})}>
-                  <SelectItem key="user">Usuario Estándar</SelectItem>
-                  <SelectItem key="org_admin">Administrador de Org</SelectItem>
-                  <SelectItem key="superadmin">Superadmin Global</SelectItem>
-                </Select>
 
+            <Card className="shadow-sm border border-divider bg-content1 md:col-span-2">
+              <CardBody className="p-6 space-y-4">
+                <h4 className="font-semibold text-gray-700 dark:text-gray-300 border-b border-divider pb-2 mb-4">Configuración</h4>
+                
                 <Select label="Tipo de Perfil" variant="bordered" selectedKeys={[formData.user_type]} onChange={(e) => setFormData({...formData, user_type: e.target.value})}>
                   <SelectItem key="worker">Trabajador</SelectItem>
                   <SelectItem key="student">Estudiante</SelectItem>
@@ -468,7 +513,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                   />
                 </div>
 
-                {sessionRole === 'superadmin' && (
+                {isSuperAdmin && (
                   <div className="mt-6 pt-6 border-t border-divider">
                     <Button
                       color="danger"
@@ -502,7 +547,6 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
               <ModalContent>
                 {(onClose) => (
                   <ModalBody className="p-0 flex flex-col items-center justify-center overflow-hidden h-[85vh] relative">
-                    {/* Controles de Zoom Flotantes */}
                     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-1 bg-black/40 backdrop-blur-xl p-1.5 rounded-2xl border border-white/10 shadow-2xl">
                        <Button isIconOnly size="sm" variant="light" className="text-white hover:bg-white/10" onPress={() => setZoom(prev => Math.max(1, prev - 0.5))}> - </Button>
                        <div className="w-16 text-center">
@@ -533,7 +577,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
               </ModalContent>
             </Modal>
 
-            {/* Modal para Cambiar Contraseña (Administrador) */}
+            {/* Modal para Cambiar Contraseña */}
             <Modal 
               isOpen={isPwdOpen} 
               onOpenChange={onPwdOpenChange}
@@ -579,7 +623,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
 
         <Tab key="health" title={<div className="flex items-center gap-2"><HeartPulse className="w-4 h-4"/><span>Perfil Médico & Residencia</span></div>}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
-            <Card className="shadow-sm border border-gray-100 dark:border-default-100 bg-white dark:bg-[#1a1b1e]">
+            <Card className="shadow-sm border border-divider bg-content1">
               <CardBody className="p-6 space-y-4">
                 <h4 className="font-semibold text-gray-700 dark:text-gray-300 border-b border-divider pb-2 flex items-center justify-between">
                   <span>Contactos de Emergencia</span>
@@ -628,14 +672,14 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
             </Card>
 
             <div className="flex flex-col gap-5">
-              <Card className="shadow-sm border border-gray-100 dark:border-default-100 bg-white dark:bg-[#1a1b1e]">
+              <Card className="shadow-sm border border-divider bg-content1">
                 <CardBody className="p-6 space-y-4">
                   <h4 className="font-semibold text-gray-700 dark:text-gray-300 border-b border-divider pb-2 mb-2">Información Médica</h4>
                   <Input label="Seguro Médico / Póliza (Opcional)" variant="bordered" placeholder="Ej: Seguros Caracas #1234" value={formData.insurance_info} onValueChange={(v) => setFormData({...formData, insurance_info: v})} />
                 </CardBody>
               </Card>
 
-              <Card className="shadow-sm border border-gray-100 dark:border-default-100 bg-white dark:bg-[#1a1b1e]">
+              <Card className="shadow-sm border border-divider bg-content1">
                 <CardBody className="p-6 space-y-4">
                   <h4 className="font-semibold text-gray-700 dark:text-gray-300 border-b border-divider pb-2 mb-2">Información de Residencia</h4>
                   <Input label="Dirección (Avenida, Calle, Nro)" variant="bordered" value={formData.residence_info.address} onValueChange={(v) => setFormData({...formData, residence_info: {...formData.residence_info, address: v}})} />
@@ -650,7 +694,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         </Tab>
 
         <Tab key="activity" title={<div className="flex items-center gap-2"><Activity className="w-4 h-4"/><span>Asistencias</span></div>}>
-          <Card className="shadow-sm border border-gray-100 dark:border-default-100 mt-4 bg-white dark:bg-[#1a1b1e]">
+          <Card className="shadow-sm border border-divider mt-4 bg-content1">
             <CardBody className="p-0">
               {logs.length === 0 ? (
                 <div className="text-center py-10 text-gray-400">
@@ -661,7 +705,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-[var(--color-lavender-mist)]/50 dark:bg-default-50 border-b border-gray-100 dark:border-default-100">
+                      <tr className="bg-[var(--color-lavender-mist)]/50 dark:bg-default-50 border-b border-divider">
                         <th className="py-3 px-5 text-xs font-bold text-gray-500 uppercase">Fecha y Hora</th>
                         <th className="py-3 px-5 text-xs font-bold text-gray-500 uppercase">Tipo</th>
                         <th className="py-3 px-5 text-xs font-bold text-gray-500 uppercase">Status</th>
@@ -702,7 +746,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         </Tab>
 
         <Tab key="qr" title={<div className="flex items-center gap-2"><QrCode className="w-4 h-4"/><span>Perfil QR</span></div>}>
-          <Card className="shadow-sm border border-gray-100 dark:border-default-100 mt-4 bg-white dark:bg-[#1a1b1e]">
+          <Card className="shadow-sm border border-divider mt-4 bg-content1">
             <CardBody className="p-6">
               <h4 className="font-semibold text-gray-700 dark:text-gray-300 border-b border-divider pb-2 mb-5">
                 Enlaces de Verificación Pública (QR)
@@ -721,13 +765,13 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                 <div className="space-y-4">
                   {memberships.map((m: any) => {
                     const org = m.organization_id;
-                    const orgId = typeof org === "object" ? org._id : org;
-                    const orgName = typeof org === "object" ? org.name : orgId;
-                    const url = getVerifyUrl(orgId);
-                    const isCopied = copiedOrgId === orgId;
+                    const mOrgId = typeof org === "object" ? org._id : org;
+                    const orgName = typeof org === "object" ? org.name : mOrgId;
+                    const url = getVerifyUrl(mOrgId);
+                    const isCopied = copiedOrgId === mOrgId;
 
                     return (
-                      <div key={orgId} className="p-4 rounded-xl bg-gradient-to-r from-[var(--color-electric-sapphire)]/5 to-[var(--color-tropical-teal)]/5 dark:from-[var(--color-electric-sapphire)]/10 dark:to-[var(--color-tropical-teal)]/10 border border-[var(--color-electric-sapphire)]/15 dark:border-default-100">
+                      <div key={mOrgId} className="p-4 rounded-xl bg-gradient-to-r from-[var(--color-electric-sapphire)]/5 to-[var(--color-tropical-teal)]/5 dark:from-[var(--color-electric-sapphire)]/10 dark:to-[var(--color-tropical-teal)]/10 border border-[var(--color-electric-sapphire)]/15 dark:border-default-100">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <Building2 className="w-4 h-4 text-[var(--color-electric-sapphire)]" />
@@ -735,7 +779,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                           </div>
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => handleCopyLink(orgId)}
+                              onClick={() => handleCopyLink(mOrgId)}
                               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                                 isCopied
                                   ? "bg-success/20 text-success"
@@ -746,7 +790,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                               {isCopied ? "¡Copiado!" : "Copiar"}
                             </button>
                             <Link
-                              href={`/verify/${orgId}/${id}`}
+                              href={`/verify/${mOrgId}/${id}`}
                               target="_blank"
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--color-electric-sapphire)] text-white hover:opacity-90 transition-opacity"
                             >

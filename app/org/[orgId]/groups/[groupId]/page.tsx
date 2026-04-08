@@ -7,10 +7,11 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import { Spinner } from "@heroui/spinner";
+import { Switch } from "@heroui/switch";
 import { useParams } from "next/navigation";
 
 // Types
-interface User { _id: string; name: string; email: string; }
+interface User { _id: string; name: string; email: string; user_type?: 'worker' | 'student'; }
 interface Membership { _id: string; user_id: User; role: string; }
 interface Task { _id: string; title: string; description: string; due_date?: string; is_recurring: boolean; recurrence?: string; }
 interface Schedule { _id: string; title: string; start_time: string; end_time: string; days_of_week: number[]; }
@@ -23,6 +24,7 @@ export default function GroupDetailsPage() {
   const [activeTab, setActiveTab] = useState<"members" | "schedules" | "tasks">("members");
   
   const [groupName, setGroupName] = useState("");
+  const [groupType, setGroupType] = useState<'study' | 'work'>('work');
   
   // Data States
   const [members, setMembers] = useState<Membership[]>([]);
@@ -43,6 +45,8 @@ export default function GroupDetailsPage() {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDesc, setTaskDesc] = useState("");
   const [taskDue, setTaskDue] = useState("");
+  const [taskIsRecurring, setTaskIsRecurring] = useState(false);
+  const [taskRecurrence, setTaskRecurrence] = useState("weekly");
   
   const [schedTitle, setSchedTitle] = useState("");
   const [schedStart, setSchedStart] = useState("");
@@ -65,6 +69,7 @@ export default function GroupDetailsPage() {
       if (res.ok) {
         const data = await res.json();
         setGroupName(data.name);
+        setGroupType(data.type || 'work');
       }
     } catch(e) { console.error(e); }
   };
@@ -75,8 +80,11 @@ export default function GroupDetailsPage() {
       const res = await fetch(`/api/groups/${groupId}/members`);
       if (res.ok) setMembers(await res.json());
       // Fetch org users to allow adding existing org members to the group
-      const orgRes = await fetch(`/api/memberships?organization_id=${orgId}`);
-      if (orgRes.ok) setOrgUsers(await orgRes.json());
+      const orgRes = await fetch(`/api/memberships?organization_id=${orgId}&limit=200`);
+      if (orgRes.ok) {
+        const orgData = await orgRes.json();
+        setOrgUsers(orgData.memberships || []);
+      }
     } catch(e) { console.error(e); } finally { setLoading(false); }
   };
 
@@ -108,9 +116,9 @@ export default function GroupDetailsPage() {
   const handleAddTask = async (onClose: () => void) => {
     try {
       const res = await fetch(`/api/groups/${groupId}/tasks`, {
-        method: "POST", body: JSON.stringify({ title: taskTitle, description: taskDesc, due_date: taskDue })
+        method: "POST", body: JSON.stringify({ title: taskTitle, description: taskDesc, due_date: taskDue, is_recurring: taskIsRecurring, recurrence: taskRecurrence })
       });
-      if (res.ok) { await fetchTasks(); onClose(); setTaskTitle(""); setTaskDesc(""); setTaskDue(""); }
+      if (res.ok) { await fetchTasks(); onClose(); setTaskTitle(""); setTaskDesc(""); setTaskDue(""); setTaskIsRecurring(false); setTaskRecurrence("weekly"); }
     } catch(e) { console.error(e); }
   };
 
@@ -128,6 +136,9 @@ export default function GroupDetailsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4 border-b pb-4">
         <h2 className="text-2xl font-bold">Grupo: {groupName || <Spinner size="sm" />}</h2>
+        <span className={`px-3 py-1 rounded-full text-xs font-medium ${groupType === 'work' ? 'bg-primary/20 text-primary' : 'bg-warning/20 text-warning'}`}>
+          {groupType === 'work' ? 'Trabajo' : 'Estudio'}
+        </span>
       </div>
 
       <div className="flex gap-2 border-b">
@@ -239,15 +250,38 @@ export default function GroupDetailsPage() {
          <ModalContent>
            {(onClose) => (
              <>
-               <ModalHeader>Añadir Integrante</ModalHeader>
-               <ModalBody>
-                 <Select label="Usuario de la Organización" selectedKeys={[selectedUserId]} onChange={e => setSelectedUserId(e.target.value)}>
-                   {orgUsers.map(ou => <SelectItem key={ou.user_id._id} textValue={ou.user_id.name}>{ou.user_id.name}</SelectItem>)}
-                 </Select>
-                 <Select label="Rol" selectedKeys={[memberRole]} onChange={e => setMemberRole(e.target.value)}>
-                   <SelectItem key="member">Miembro</SelectItem>
-                   <SelectItem key="leader">Líder</SelectItem>
-                 </Select>
+                <ModalHeader>Añadir Integrante</ModalHeader>
+                <ModalBody>
+                  {(() => {
+                    const requiredUserType = groupType === 'work' ? 'worker' : 'student';
+                    const existingMemberIds = new Set(members.map(m => m.user_id?._id));
+                    const filteredUsers = orgUsers.filter(ou => {
+                      if (!ou.user_id) return false;
+                      if (existingMemberIds.has(ou.user_id._id)) return false;
+                      return ou.user_id.user_type === requiredUserType;
+                    });
+                    return (
+                      <>
+                        <div className="p-3 rounded-lg bg-default-100 text-sm text-default-600 mb-1">
+                          Este grupo es de <strong>{groupType === 'work' ? 'Trabajo' : 'Estudio'}</strong>.
+                          Solo se muestran usuarios tipo <strong>{requiredUserType === 'worker' ? 'Trabajador' : 'Estudiante'}</strong>.
+                        </div>
+                        {filteredUsers.length === 0 ? (
+                          <div className="p-4 rounded-lg bg-warning/10 text-warning text-sm text-center">
+                            No hay {requiredUserType === 'worker' ? 'trabajadores' : 'estudiantes'} disponibles para agregar.
+                          </div>
+                        ) : (
+                          <Select label="Usuario de la Organización" selectedKeys={[selectedUserId]} onChange={e => setSelectedUserId(e.target.value)}>
+                            {filteredUsers.map(ou => <SelectItem key={ou.user_id._id} textValue={ou.user_id.name}>{ou.user_id.name} — {ou.user_id.email}</SelectItem>)}
+                          </Select>
+                        )}
+                      </>
+                    );
+                  })()}
+                  <Select label="Rol" selectedKeys={[memberRole]} onChange={e => setMemberRole(e.target.value)}>
+                    <SelectItem key="member">Miembro</SelectItem>
+                    <SelectItem key="leader">Líder</SelectItem>
+                  </Select>
                </ModalBody>
                <ModalFooter><Button color="primary" onPress={() => handleAddMember(onClose)}>Añadir</Button></ModalFooter>
              </>
@@ -261,9 +295,22 @@ export default function GroupDetailsPage() {
              <>
                <ModalHeader>Nueva Tarea</ModalHeader>
                <ModalBody>
-                 <Input label="Título" value={taskTitle} onValueChange={setTaskTitle} />
-                 <Input label="Descripción" value={taskDesc} onValueChange={setTaskDesc} />
-                 <Input type="date" label="Fecha de Límite" value={taskDue} onValueChange={setTaskDue} placeholder=" " />
+                 <Input label="Título" value={taskTitle} onValueChange={setTaskTitle} placeholder="Ej: Estudiar Rust" />
+                 <Input label="Descripción" value={taskDesc} onValueChange={setTaskDesc} placeholder="Ej: 1 hr al día, dos veces por semana" />
+                 <Input type="date" label="Fecha de Límite / Fin" value={taskDue} onValueChange={setTaskDue} placeholder=" " description="Ej: Hasta Junio aproximadamente" />
+                 <div className="flex flex-col gap-2 p-3 bg-default-50 rounded-xl border border-divider">
+                   <div className="flex items-center justify-between">
+                     <span className="text-sm font-semibold">¿Es una tarea repetitiva?</span>
+                     <Switch isSelected={taskIsRecurring} onValueChange={setTaskIsRecurring} size="sm" color="primary" />
+                   </div>
+                   {taskIsRecurring && (
+                     <Select label="Frecuencia" size="sm" selectedKeys={[taskRecurrence]} onChange={e => setTaskRecurrence(e.target.value)} className="mt-2">
+                       <SelectItem key="weekly">Semanal</SelectItem>
+                       <SelectItem key="monthly">Mensual</SelectItem>
+                       <SelectItem key="yearly">Anual</SelectItem>
+                     </Select>
+                   )}
+                 </div>
                </ModalBody>
                <ModalFooter><Button color="primary" onPress={() => handleAddTask(onClose)}>Crear Tarea</Button></ModalFooter>
              </>

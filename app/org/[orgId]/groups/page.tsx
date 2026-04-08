@@ -132,7 +132,7 @@ export default function GroupsPage() {
       </Table>
 
       {/* Pagination */}
-      <div className="p-4 bg-white dark:bg-[#1a1b1e] rounded-2xl shadow-sm border border-gray-100 dark:border-default-100 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="p-4 bg-content1 rounded-2xl shadow-sm border border-divider flex flex-col md:flex-row justify-between items-center gap-4">
         <p className="text-sm text-gray-500">Mostrando {groups.length} de {total} grupos</p>
         <Pagination
           total={totalPages}
