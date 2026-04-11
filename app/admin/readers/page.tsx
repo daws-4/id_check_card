@@ -53,8 +53,8 @@ export default function ReadersPage() {
   useEffect(() => {
     if (orgId) {
       fetch(`/api/groups?organization_id=${orgId}`)
-        .then(res => res.ok ? res.json() : [])
-        .then(data => setGroups(data))
+        .then(res => res.ok ? res.json() : { groups: [] })
+        .then(data => setGroups(Array.isArray(data) ? data : data.groups || []))
         .catch(console.error);
     } else {
       setGroups([]);
