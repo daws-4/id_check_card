@@ -105,5 +105,15 @@
     "tailwind-variants": "3.2.2",
     "tailwindcss": "4.1.11",
     "typescript": "5.6.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@heroui/shared-utils",
+      "@tailwindcss/oxide",
+      "esbuild",
+      "puppeteer",
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }
