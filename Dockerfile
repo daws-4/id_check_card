@@ -12,7 +12,7 @@ WORKDIR /app
 
 # Copiar archivos de definición de dependencias de pnpm
 COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --config.minimumReleaseAge=0
 
 # 2. Construir el proyecto Next.js
 FROM base AS builder
