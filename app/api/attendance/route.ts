@@ -6,6 +6,7 @@ import { Membership } from '@/models/Membership';
 import { AttendanceLog } from '@/models/AttendanceLog';
 import { GroupMembership } from '@/models/GroupMembership';
 import { Schedule } from '@/models/Schedule';
+import { Organization } from '@/models/Organization';
 
 const TAG = '[Attendance API]';
 
@@ -139,6 +140,45 @@ export async function POST(req: Request) {
       );
     }
 
+    // 3b. Verify Gym Membership Expiration
+    const organization = await Organization.findById(organization_id);
+    const orgType = organization?.type || 'default';
+
+    if (orgType === 'gym') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (membership.plan_status !== 'active') {
+        console.warn(`${TAG} POST 403 — Gym membership status="${membership.plan_status}" (not active) for user=${user_id}`);
+        return NextResponse.json(
+          { error: 'Tu membresía no está activa (está vencida o suspendida)' },
+          { status: 403 }
+        );
+      }
+
+      if (membership.expiration_date && new Date(membership.expiration_date) < today) {
+        // Auto-expire
+        membership.plan_status = 'expired';
+        await membership.save();
+
+        console.warn(`${TAG} POST 403 — Gym membership expired on ${membership.expiration_date} for user=${user_id}`);
+        return NextResponse.json(
+          { error: 'Tu membresía ha vencido. Por favor, acércate a recepción para renovarla.' },
+          { status: 403 }
+        );
+      }
+
+      if (membership.remaining_sessions !== undefined) {
+        if (membership.remaining_sessions <= 0) {
+          console.warn(`${TAG} POST 403 — Gym membership has 0 sessions remaining for user=${user_id}`);
+          return NextResponse.json(
+            { error: 'No te quedan sesiones disponibles en tu plan' },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     // 4. Determine Entry or Exit
     const step4 = Date.now();
     const todayStart = new Date();
@@ -259,6 +299,13 @@ export async function POST(req: Request) {
 
     const newLog = await AttendanceLog.create(logData);
     console.log(`${TAG} [Step 6] Log created (${elapsed(step6)}): id=${newLog._id}, timestamp=${newLog.timestamp}`);
+
+    // Decrement sessions if check-in (entrada) at a gym
+    if (orgType === 'gym' && type === 'entrada' && membership.remaining_sessions !== undefined) {
+      membership.remaining_sessions = Math.max(0, membership.remaining_sessions - 1);
+      await membership.save();
+      console.log(`${TAG} Decremented remaining sessions for user=${user_id}. Remaining: ${membership.remaining_sessions}`);
+    }
 
     // 7. Fire notification webhook (fire-and-forget, don't block ESP32 response)
     try {

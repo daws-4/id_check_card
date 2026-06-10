@@ -107,6 +107,13 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
     ]
   });
 
+  // Gym membership form states
+  const [gymPlanName, setGymPlanName] = useState("");
+  const [gymPlanStatus, setGymPlanStatus] = useState<string>("active");
+  const [gymExpirationDate, setGymExpirationDate] = useState("");
+  const [gymRemainingSessions, setGymRemainingSessions] = useState<number | "">("");
+  const [gymNotes, setGymNotes] = useState("");
+
   useEffect(() => {
     fetchData();
   }, [id]);
@@ -155,7 +162,30 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
       if (logRes.ok) setLogs(await logRes.json());
       if (membRes.ok) {
         const membData = await membRes.json();
-        setMemberships(membData.memberships || []);
+        const membs = membData.memberships || [];
+        setMemberships(membs);
+        
+        // Find current membership
+        const orgMembership = membs.find((m: any) => {
+          const mOrgId = typeof m.organization_id === 'object' ? m.organization_id._id : m.organization_id;
+          return mOrgId === orgId;
+        });
+        
+        if (orgMembership) {
+          setGymPlanName(orgMembership.plan_name || "");
+          setGymPlanStatus(orgMembership.plan_status || "active");
+          setGymExpirationDate(
+            orgMembership.expiration_date 
+              ? new Date(orgMembership.expiration_date).toISOString().split('T')[0] 
+              : ""
+          );
+          setGymRemainingSessions(
+            orgMembership.remaining_sessions !== undefined && orgMembership.remaining_sessions !== null
+              ? orgMembership.remaining_sessions
+              : ""
+          );
+          setGymNotes(orgMembership.notes || "");
+        }
       }
       if (profileReqRes.ok) {
         const reqData = await profileReqRes.json();
@@ -309,15 +339,39 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (res.ok) {
-        alert("Usuario actualizado correctamente");
+
+      // Find current membership
+      const orgMembership = memberships.find((m: any) => {
+        const mOrgId = typeof m.organization_id === 'object' ? m.organization_id._id : m.organization_id;
+        return mOrgId === orgId;
+      });
+
+      let membershipOk = true;
+      if (orgMembership && orgMembership.organization_id?.type === 'gym') {
+        const membRes = await fetch(`/api/memberships/${orgMembership._id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            plan_name: gymPlanName,
+            plan_status: gymPlanStatus,
+            expiration_date: gymExpirationDate ? new Date(gymExpirationDate) : null,
+            remaining_sessions: gymRemainingSessions !== "" ? Number(gymRemainingSessions) : null,
+            notes: gymNotes
+          })
+        });
+        membershipOk = membRes.ok;
+      }
+      
+      if (res.ok && membershipOk) {
+        alert("Usuario y membresía actualizados correctamente");
         fetchData();
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         alert(err.error || "Error al actualizar");
       }
     } catch (e) {
       console.error(e);
+      alert("Error de red");
     }
     setSaving(false);
   };
@@ -596,6 +650,68 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
                 )}
               </CardBody>
             </Card>
+
+            {memberships.find((m: any) => {
+              const mOrgId = typeof m.organization_id === 'object' ? m.organization_id._id : m.organization_id;
+              return mOrgId === orgId;
+            })?.organization_id?.type === 'gym' && (
+              <Card className="shadow-sm border border-divider bg-content1 md:col-span-2">
+                <CardBody className="p-6 space-y-4">
+                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 border-b border-divider pb-2 mb-4 flex items-center gap-2">
+                    <HeartPulse className="w-5 h-5 text-[var(--color-tropical-teal)]" />
+                    Membresía / Plan del Gimnasio
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Nombre del Plan"
+                      placeholder="Ej: Plan VIP Mensual, Pase Diario..."
+                      variant="bordered"
+                      value={gymPlanName}
+                      onValueChange={setGymPlanName}
+                    />
+                    
+                    <Select
+                      label="Estado del Plan"
+                      variant="bordered"
+                      selectedKeys={gymPlanStatus ? new Set([gymPlanStatus]) : new Set([])}
+                      onChange={(e) => setGymPlanStatus(e.target.value)}
+                    >
+                      <SelectItem key="active">Activo</SelectItem>
+                      <SelectItem key="expired">Vencido / Expirado</SelectItem>
+                      <SelectItem key="suspended">Suspendido</SelectItem>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Fecha de Vencimiento"
+                      type="date"
+                      variant="bordered"
+                      value={gymExpirationDate}
+                      onValueChange={setGymExpirationDate}
+                    />
+
+                    <Input
+                      label="Sesiones Restantes (Opcional)"
+                      type="number"
+                      placeholder="Dejar vacío para ilimitadas"
+                      variant="bordered"
+                      value={gymRemainingSessions !== undefined && gymRemainingSessions !== null ? gymRemainingSessions.toString() : ""}
+                      onValueChange={(v) => setGymRemainingSessions(v === "" ? "" : Number(v))}
+                    />
+                  </div>
+
+                  <Input
+                    label="Notas / Observaciones"
+                    placeholder="Notas adicionales sobre el plan del cliente..."
+                    variant="bordered"
+                    value={gymNotes}
+                    onValueChange={setGymNotes}
+                  />
+                </CardBody>
+              </Card>
+            )}
 
             {/* Modal de Vista Ampliada */}
             <Modal 

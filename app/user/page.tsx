@@ -13,6 +13,7 @@ import {
   TrendingUp,
   ArrowRight,
   Nfc,
+  Building2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -34,6 +35,7 @@ interface DashboardData {
     weeklyLateCount: number;
     strictScheduleEnforcement: boolean;
     expectedMinutesToday: number;
+    gymVisitsByOrg?: Record<string, number>;
   };
   error?: string;
   details?: string;
@@ -118,7 +120,7 @@ export default function UserDashboard() {
     );
   }
 
-  const { todaySchedules, pendingTasks, recentLogs, metrics, userType } = data;
+  const { todaySchedules, pendingTasks, recentLogs, metrics, userType, organizations } = data;
 
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -127,6 +129,9 @@ export default function UserDashboard() {
     const [h, m] = t.split(":").map(Number);
     return h * 60 + m;
   }
+
+  const gymOrgs = organizations?.filter((o: any) => o.type === "gym") || [];
+  const attendanceOrgs = organizations?.filter((o: any) => o.type !== "gym") || [];
 
   return (
     <div className="space-y-8">
@@ -145,73 +150,159 @@ export default function UserDashboard() {
         </p>
       </div>
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
-          <CardBody className="flex flex-row items-center gap-4 p-5">
-            <div className="bg-emerald-100 text-emerald-600 rounded-xl p-3">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Cumplimiento</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {metrics.scheduleCompliance}%
-              </p>
-            </div>
-          </CardBody>
-        </Card>
+      {/* Gym Memberships Section */}
+      {gymOrgs.length > 0 && (
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold text-[var(--color-tropical-teal)] flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-[var(--color-tropical-teal)]" />
+            Mis Membresías de Fitness
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {gymOrgs.map((gym: any) => {
+              const visits = metrics.gymVisitsByOrg?.[gym._id.toString()] || 0;
+              const isExpired = gym.plan_status === "expired" || (gym.expiration_date && new Date(gym.expiration_date) < new Date());
+              const isSuspended = gym.plan_status === "suspended";
+              const isActive = !isExpired && !isSuspended;
 
-        <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
-          <CardBody className="flex flex-row items-center gap-4 p-5">
-            <div className="bg-blue-100 text-blue-600 rounded-xl p-3">
-              <Clock className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {metrics.strictScheduleEnforcement ? "Horas Cumplidas" : (userType === "student" ? "Horas de Estudio" : "Horas Trabajadas")}
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {metrics.strictScheduleEnforcement 
-                  ? `${metrics.totalHoursWorked}/${+(metrics.expectedMinutesToday / 60).toFixed(1)}h` 
-                  : `${metrics.totalHoursWorked}h`}
-              </p>
-            </div>
-          </CardBody>
-        </Card>
+              return (
+                <Card key={gym._id} className="bg-white dark:bg-zinc-900 shadow-md border-none overflow-hidden">
+                  <CardHeader className="flex justify-between items-center bg-zinc-50 dark:bg-zinc-800/40 px-6 py-4 border-b border-gray-100 dark:border-white/5">
+                    <div>
+                      <h3 className="font-bold text-base text-gray-900 dark:text-white">{gym.name}</h3>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">Gimnasio / Centro Deportivo</p>
+                    </div>
+                    <Chip
+                      color={isActive ? "success" : isExpired ? "danger" : "warning"}
+                      variant="flat"
+                      size="sm"
+                      className="font-semibold text-xs"
+                    >
+                      {isActive ? "Activa 🟢" : isExpired ? "Vencida 🔴" : "Suspendida 🟡"}
+                    </Chip>
+                  </CardHeader>
+                  <CardBody className="px-6 py-5 space-y-4">
+                    <div className="flex justify-between items-center text-sm">
+                      <div>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-semibold">Plan Actual</p>
+                        <p className="font-bold text-gray-800 dark:text-gray-200">{gym.plan_name || "Sin plan asignado"}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-semibold">Visitas este Mes</p>
+                        <p className="font-bold text-emerald-600 dark:text-emerald-400">{visits} entrenamientos</p>
+                      </div>
+                    </div>
 
-        <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
-          <CardBody className="flex flex-row items-center gap-4 p-5">
-            <div className="bg-purple-100 text-purple-600 rounded-xl p-3">
-              <TrendingUp className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Tiempo Extra</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {metrics.overtimeMinutes} min
-              </p>
-            </div>
-          </CardBody>
-        </Card>
+                    {gym.expiration_date && (
+                      <div className="pt-2">
+                        <div className="flex justify-between text-[11px] mb-1">
+                          <span className="text-gray-400 dark:text-gray-500">Vence: {new Date(gym.expiration_date).toLocaleDateString("es-ES")}</span>
+                          <span className="font-semibold text-gray-600 dark:text-gray-400">
+                            {isExpired ? "Expirado" : `${Math.max(0, Math.ceil((new Date(gym.expiration_date).getTime() - new Date().getTime()) / 86400000))} días restantes`}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${isExpired ? "bg-red-500" : "bg-emerald-500"}`}
+                            style={{
+                              width: `${Math.min(100, Math.max(0, isExpired ? 0 : (Math.max(0, Math.ceil((new Date(gym.expiration_date).getTime() - new Date().getTime()) / 86400000)) / 30) * 100))}%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
 
-        <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
-          <CardBody className="flex flex-row items-center gap-4 p-5">
-            <div className="bg-amber-100 text-amber-600 rounded-xl p-3">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Llegadas Tarde</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.lateArrivals}</p>
-              {metrics.lateArrivals > 0 && (
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  ~{metrics.avgLateMinutes} min prom.
-                </p>
-              )}
-            </div>
-          </CardBody>
-        </Card>
-      </div>
+                    {gym.remaining_sessions !== undefined && (
+                      <div className="bg-zinc-50 dark:bg-zinc-800/30 p-3 rounded-xl border border-gray-100 dark:border-white/5 flex justify-between items-center text-xs">
+                        <span className="text-gray-400 dark:text-gray-500">Sesiones restantes en tiquetera:</span>
+                        <Chip size="sm" color={gym.remaining_sessions > 0 ? "primary" : "danger"} variant="flat" className="font-bold">
+                          {gym.remaining_sessions} sesiones
+                        </Chip>
+                      </div>
+                    )}
+                  </CardBody>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Metric Cards (Attendance-based) */}
+      {attendanceOrgs.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold text-[var(--color-tropical-teal)] flex items-center gap-2">
+            <Clock className="w-5 h-5 text-[var(--color-tropical-teal)]" />
+            Jornada Laboral / Académica
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
+              <CardBody className="flex flex-row items-center gap-4 p-5">
+                <div className="bg-emerald-100 text-emerald-600 rounded-xl p-3">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Cumplimiento</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {metrics.scheduleCompliance}%
+                  </p>
+                </div>
+              </CardBody>
+            </Card>
+
+            <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
+              <CardBody className="flex flex-row items-center gap-4 p-5">
+                <div className="bg-blue-100 text-blue-600 rounded-xl p-3">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {metrics.strictScheduleEnforcement ? "Horas Cumplidas" : (userType === "student" ? "Horas de Estudio" : "Horas Trabajadas")}
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {metrics.strictScheduleEnforcement 
+                      ? `${metrics.totalHoursWorked}/${+(metrics.expectedMinutesToday / 60).toFixed(1)}h` 
+                      : `${metrics.totalHoursWorked}h`}
+                  </p>
+                </div>
+              </CardBody>
+            </Card>
+
+            <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
+              <CardBody className="flex flex-row items-center gap-4 p-5">
+                <div className="bg-purple-100 text-purple-600 rounded-xl p-3">
+                  <TrendingUp className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Tiempo Extra</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {metrics.overtimeMinutes} min
+                  </p>
+                </div>
+              </CardBody>
+            </Card>
+
+            <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
+              <CardBody className="flex flex-row items-center gap-4 p-5">
+                <div className="bg-amber-100 text-amber-600 rounded-xl p-3">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Llegadas Tarde</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.lateArrivals}</p>
+                  {metrics.lateArrivals > 0 && (
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      ~{metrics.avgLateMinutes} min prom.
+                    </p>
+                  )}
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+        </div>
+      )}
 
       {/* Two column layout */}
+      {(attendanceOrgs.length > 0 || todaySchedules.length > 0 || pendingTasks.length > 0) && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Today's Schedules */}
         <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">
@@ -368,6 +459,7 @@ export default function UserDashboard() {
           </CardBody>
         </Card>
       </div>
+      )}
 
       {/* Recent NFC Logs */}
       <Card className="bg-white dark:bg-zinc-900 shadow-md border-none">

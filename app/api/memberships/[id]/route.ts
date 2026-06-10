@@ -21,18 +21,22 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     await connectDB();
     const { id } = await params;
     const body = await req.json();
-    const { role } = body;
+    
+    const updateData: any = {};
+    if (body.role !== undefined) updateData.role = body.role;
+    if (body.plan_name !== undefined) updateData.plan_name = body.plan_name;
+    if (body.plan_status !== undefined) updateData.plan_status = body.plan_status;
+    if (body.expiration_date !== undefined) updateData.expiration_date = body.expiration_date;
+    if (body.remaining_sessions !== undefined) updateData.remaining_sessions = body.remaining_sessions;
+    if (body.notes !== undefined) updateData.notes = body.notes;
 
-    if (!role) {
-      return NextResponse.json({ error: 'Role is required to update' }, { status: 400 });
-    }
-
-    const updatedMembership = await Membership.findByIdAndUpdate(id, { role }, { new: true });
+    const updatedMembership = await Membership.findByIdAndUpdate(id, updateData, { new: true });
     if (!updatedMembership) return NextResponse.json({ error: 'Membership not found' }, { status: 404 });
 
     return NextResponse.json({ message: 'Membership updated', membership: updatedMembership });
   } catch (error: any) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("PUT MEMBERSHIP ERROR:", error);
+    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }
 }
 

@@ -29,6 +29,11 @@ interface Membership {
   _id: string;
   user_id: User;
   role: string;
+  plan_name?: string;
+  plan_status?: 'active' | 'expired' | 'suspended';
+  expiration_date?: string;
+  remaining_sessions?: number;
+  notes?: string;
   createdAt: string;
 }
 
@@ -73,6 +78,23 @@ export default function MembersPage() {
   const [newUserType, setNewUserType] = useState("worker");
   const [newStrictSchedule, setNewStrictSchedule] = useState(false);
 
+  const [orgType, setOrgType] = useState<string>("");
+
+  const { 
+    isOpen: isGymModalOpen, 
+    onOpen: onGymModalOpen, 
+    onOpenChange: onGymModalOpenChange 
+  } = useDisclosure();
+  const [selectedMembership, setSelectedMembership] = useState<Membership | null>(null);
+  
+  // Gym membership form states
+  const [gymPlanName, setGymPlanName] = useState("");
+  const [gymPlanStatus, setGymPlanStatus] = useState<'active' | 'expired' | 'suspended'>('active');
+  const [gymExpirationDate, setGymExpirationDate] = useState("");
+  const [gymRemainingSessions, setGymRemainingSessions] = useState<number | "">("");
+  const [gymNotes, setGymNotes] = useState("");
+  const [isUpdatingGymPlan, setIsUpdatingGymPlan] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, [orgId, page, limit, search]);
@@ -100,6 +122,7 @@ export default function MembersPage() {
       if (orgRes.ok) {
         const orgData = await orgRes.json();
         setOrgLimit(orgData.max_users_limit || 50);
+        setOrgType(orgData.type || "");
       }
       if (previewRes.ok) {
         const previewData = await previewRes.json();
@@ -201,6 +224,65 @@ export default function MembersPage() {
       console.error("Error adding member", error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const getPlanStatusBadge = (status?: string) => {
+    switch (status) {
+      case 'active': return <span className="px-2 py-1 rounded-full text-xs font-medium bg-success/20 text-success">Activo</span>;
+      case 'suspended': return <span className="px-2 py-1 rounded-full text-xs font-medium bg-warning/20 text-warning">Suspendido</span>;
+      case 'expired': return <span className="px-2 py-1 rounded-full text-xs font-medium bg-danger/20 text-danger">Vencido</span>;
+      default: return <span className="px-2 py-1 rounded-full text-xs font-medium bg-default-200">Sin Plan</span>;
+    }
+  };
+
+  const handleOpenGymModal = (membership: Membership) => {
+    setSelectedMembership(membership);
+    setGymPlanName(membership.plan_name || "");
+    setGymPlanStatus(membership.plan_status || "active");
+    setGymExpirationDate(
+      membership.expiration_date 
+        ? new Date(membership.expiration_date).toISOString().split('T')[0] 
+        : ""
+    );
+    setGymRemainingSessions(
+      membership.remaining_sessions !== undefined && membership.remaining_sessions !== null
+        ? membership.remaining_sessions
+        : ""
+    );
+    setGymNotes(membership.notes || "");
+    onGymModalOpen();
+  };
+
+  const handleUpdateGymMembership = async (onClose: () => void) => {
+    if (!selectedMembership) return;
+    setIsUpdatingGymPlan(true);
+    try {
+      const res = await fetch(`/api/memberships/${selectedMembership._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan_name: gymPlanName,
+          plan_status: gymPlanStatus,
+          expiration_date: gymExpirationDate ? new Date(gymExpirationDate) : null,
+          remaining_sessions: gymRemainingSessions !== "" ? Number(gymRemainingSessions) : null,
+          notes: gymNotes
+        })
+      });
+
+      if (res.ok) {
+        alert("Membresía actualizada con éxito");
+        await fetchData();
+        onClose();
+      } else {
+        const err = await res.json();
+        alert(`Error al actualizar membresía: ${err.error || "Error desconocido"}`);
+      }
+    } catch (error) {
+      console.error("Error updating gym membership", error);
+      alert("Error al guardar cambios");
+    } finally {
+      setIsUpdatingGymPlan(false);
     }
   };
 
@@ -385,23 +467,34 @@ export default function MembersPage() {
                 </th>
                 <th className="py-4 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">NOMBRE</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">CORREO</th>
-                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">ESTADO</th>
-                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">TIENE TARJETA</th>
+                {orgType === 'gym' ? (
+                  <>
+                    <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">PLAN</th>
+                    <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">ESTADO PLAN</th>
+                    <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">SESIONES</th>
+                    <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">VENCIMIENTO</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">ESTADO</th>
+                    <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">TIENE TARJETA</th>
+                    <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">SE UNIÓ</th>
+                  </>
+                )}
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">ROL</th>
-                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">SE UNIÓ</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">ACCIONES</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-default-100">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center">
+                  <td colSpan={orgType === 'gym' ? 9 : 8} className="py-8 text-center">
                     <Spinner />
                   </td>
                 </tr>
               ) : memberships.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-gray-500">
+                  <td colSpan={orgType === 'gym' ? 9 : 8} className="py-8 text-center text-gray-500">
                     No se encontraron miembros en esta organización.
                   </td>
                 </tr>
@@ -420,19 +513,38 @@ export default function MembersPage() {
                       </Link>
                     </td>
                     <td className="py-4 px-6 text-sm">{membership.user_id?.email || "N/A"}</td>
-                    <td className="py-4 px-6">{getStatusBadge(membership.user_id?.status)}</td>
-                    <td className="py-4 px-6">
-                      <span className={`px-2 py-1 rounded-full text-xs ${membership.user_id?.has_nfc_card ? 'bg-success/20 text-success' : 'bg-default-200'}`}>
-                        {membership.user_id?.has_nfc_card ? 'Sí' : 'No'}
-                      </span>
-                    </td>
+                    {orgType === 'gym' ? (
+                      <>
+                        <td className="py-4 px-6 text-sm font-semibold">{membership.plan_name || "Sin Plan"}</td>
+                        <td className="py-4 px-6">{getPlanStatusBadge(membership.plan_status)}</td>
+                        <td className="py-4 px-6 text-sm">
+                          {membership.remaining_sessions !== undefined && membership.remaining_sessions !== null
+                            ? membership.remaining_sessions
+                            : "Ilimitado"}
+                        </td>
+                        <td className="py-4 px-6 text-sm text-default-500">
+                          {membership.expiration_date 
+                            ? new Date(membership.expiration_date).toLocaleDateString()
+                            : "Sin Vencimiento"}
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="py-4 px-6">{getStatusBadge(membership.user_id?.status)}</td>
+                        <td className="py-4 px-6">
+                          <span className={`px-2 py-1 rounded-full text-xs ${membership.user_id?.has_nfc_card ? 'bg-success/20 text-success' : 'bg-default-200'}`}>
+                            {membership.user_id?.has_nfc_card ? 'Sí' : 'No'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-default-500 text-sm">
+                          {new Date(membership.createdAt).toLocaleDateString()}
+                        </td>
+                      </>
+                    )}
                     <td className="py-4 px-6">
                       <span className={`capitalize px-2 py-1 rounded-full text-xs ${membership.role === 'admin' ? 'bg-primary/20 text-primary' : 'bg-default-200'}`}>
                         {membership.role}
                       </span>
-                    </td>
-                    <td className="py-4 px-6 text-default-500 text-sm">
-                      {new Date(membership.createdAt).toLocaleDateString()}
                     </td>
                     <td className="py-4 px-6 text-right">
                       <Dropdown>
@@ -441,11 +553,20 @@ export default function MembersPage() {
                             <MoreVertical className="w-4 h-4" />
                           </button>
                         </DropdownTrigger>
-                        <DropdownMenu aria-label="Acciones de miembro">
-                          <DropdownItem key="detail" href={`/org/${orgId}/members/${membership.user_id?._id}`}>Ver / Editar Datos</DropdownItem>
-                          <DropdownItem key="qr" href={`/org/${orgId}/members/${membership.user_id?._id}#qr`}>Perfil QR</DropdownItem>
-                          <DropdownItem key="remove" className="text-danger" color="danger" onPress={() => handleRemoveMember(membership._id)}>Quitar de Org</DropdownItem>
-                        </DropdownMenu>
+                        {orgType === 'gym' ? (
+                          <DropdownMenu aria-label="Acciones de miembro">
+                            <DropdownItem key="detail" href={`/org/${orgId}/members/${membership.user_id?._id}`}>Ver / Editar Datos</DropdownItem>
+                            <DropdownItem key="membership" onPress={() => handleOpenGymModal(membership)}>Gestionar Membresía</DropdownItem>
+                            <DropdownItem key="qr" href={`/org/${orgId}/members/${membership.user_id?._id}#qr`}>Perfil QR</DropdownItem>
+                            <DropdownItem key="remove" className="text-danger" color="danger" onPress={() => handleRemoveMember(membership._id)}>Quitar de Org</DropdownItem>
+                          </DropdownMenu>
+                        ) : (
+                          <DropdownMenu aria-label="Acciones de miembro">
+                            <DropdownItem key="detail" href={`/org/${orgId}/members/${membership.user_id?._id}`}>Ver / Editar Datos</DropdownItem>
+                            <DropdownItem key="qr" href={`/org/${orgId}/members/${membership.user_id?._id}#qr`}>Perfil QR</DropdownItem>
+                            <DropdownItem key="remove" className="text-danger" color="danger" onPress={() => handleRemoveMember(membership._id)}>Quitar de Org</DropdownItem>
+                          </DropdownMenu>
+                        )}
                       </Dropdown>
                     </td>
                   </tr>
@@ -599,6 +720,78 @@ export default function MembersPage() {
                 </Button>
                 <Button color="primary" onPress={() => handleAddMember(onClose)} isLoading={isSubmitting} isDisabled={mode === "select" ? !selectedUserId : (!newName || !newEmail)}>
                   Agregar
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isGymModalOpen} onOpenChange={onGymModalOpenChange} backdrop="blur">
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                <h3 className="text-xl font-bold">Gestionar Membresía de Fitness</h3>
+                <p className="text-xs text-default-500 font-normal">
+                  Cliente: {selectedMembership?.user_id?.name} {selectedMembership?.user_id?.last_name || ""}
+                </p>
+              </ModalHeader>
+              <ModalBody className="gap-4">
+                <Input
+                  label="Nombre del Plan"
+                  placeholder="Ej: Plan VIP Mensual, Pase Diario..."
+                  variant="bordered"
+                  value={gymPlanName}
+                  onValueChange={setGymPlanName}
+                />
+                
+                <Select
+                  label="Estado del Plan"
+                  variant="bordered"
+                  selectedKeys={gymPlanStatus ? new Set([gymPlanStatus]) : new Set([])}
+                  onChange={(e) => setGymPlanStatus(e.target.value as any)}
+                >
+                  <SelectItem key="active">Activo</SelectItem>
+                  <SelectItem key="expired">Vencido / Expirado</SelectItem>
+                  <SelectItem key="suspended">Suspendido</SelectItem>
+                </Select>
+
+                <Input
+                  label="Fecha de Vencimiento"
+                  type="date"
+                  variant="bordered"
+                  value={gymExpirationDate}
+                  onValueChange={setGymExpirationDate}
+                />
+
+                <Input
+                  label="Sesiones Restantes (Opcional)"
+                  type="number"
+                  placeholder="Dejar vacío para ilimitadas"
+                  variant="bordered"
+                  value={gymRemainingSessions !== undefined && gymRemainingSessions !== null ? gymRemainingSessions.toString() : ""}
+                  onValueChange={(v) => setGymRemainingSessions(v === "" ? "" : Number(v))}
+                />
+
+                <Input
+                  label="Notas / Observaciones"
+                  placeholder="Notas adicionales sobre el plan..."
+                  variant="bordered"
+                  value={gymNotes}
+                  onValueChange={setGymNotes}
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button color="danger" variant="flat" onPress={onClose}>
+                  Cancelar
+                </Button>
+                <Button 
+                  color="primary" 
+                  onPress={() => handleUpdateGymMembership(onClose)} 
+                  isLoading={isUpdatingGymPlan}
+                >
+                  Guardar Cambios
                 </Button>
               </ModalFooter>
             </>

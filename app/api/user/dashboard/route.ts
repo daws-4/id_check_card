@@ -103,6 +103,11 @@ export async function GET() {
       _id: m.organization_id._id,
       name: m.organization_id.name,
       type: m.organization_id.type,
+      plan_name: m.plan_name,
+      plan_status: m.plan_status,
+      expiration_date: m.expiration_date,
+      remaining_sessions: m.remaining_sessions,
+      notes: m.notes,
     }));
 
     // 2. Get group memberships
@@ -276,6 +281,21 @@ export async function GET() {
       (l: any) => l.type === "entrada" && l.status === "late"
     );
 
+    // Calculate gym visits for each gym organization this month
+    const gymVisitsByOrg: Record<string, number> = {};
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const gymOrgs = organizations.filter((o: any) => o.type === "gym");
+    for (const gym of gymOrgs) {
+      const visitCount = await AttendanceLog.countDocuments({
+        user_id: userId,
+        organization_id: gym._id,
+        type: "entrada",
+        timestamp: { $gte: startOfMonth },
+      });
+      gymVisitsByOrg[gym._id.toString()] = visitCount;
+    }
+
     const metrics = {
       scheduleCompliance,
       dailyCompliance,
@@ -288,6 +308,7 @@ export async function GET() {
         lateArrivals > 0 ? Math.round(totalLateMinutes / lateArrivals) : 0,
       dailyHours,
       dailyHoursByOrg,
+      gymVisitsByOrg,
       weeklyLateCount: weeklyLateArrivals.length,
       strictScheduleEnforcement: userDoc?.strict_schedule_enforcement || false,
     };

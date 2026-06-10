@@ -1,13 +1,18 @@
 FROM node:24-alpine AS base
 
+# Habilitar corepack para usar pnpm de forma nativa e integrada en Node.js
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
 # 1. Instalar dependencias necesarias para Node.js en Alpine
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copiar archivos de definición de dependencias
-COPY package.json package-lock.json* ./
-RUN npm install
+# Copiar archivos de definición de dependencias de pnpm
+COPY package.json pnpm-lock.yaml* ./
+RUN pnpm install --frozen-lockfile
 
 # 2. Construir el proyecto Next.js
 FROM base AS builder
@@ -16,12 +21,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Next.js recolecta telemetría anónima de forma predeterminada.
-# Desactívala durante la construcción si prefieres.
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN npm run build
+RUN pnpm build
 
-# 3. Imagen de producción optimizada
+# 3. Imagen de producción optimizada (Runner)
 FROM base AS runner
 WORKDIR /app
 
@@ -40,7 +44,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Exponer el puerto configurado en Coolify
+# Exponer el puerto configurado en Coolify/Render
 EXPOSE 3001
 ENV PORT=3001
 ENV HOSTNAME=0.0.0.0
