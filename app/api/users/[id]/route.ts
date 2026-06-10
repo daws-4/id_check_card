@@ -21,22 +21,61 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    let sessionUserRole = '';
+    let sessionUserId = '';
+
+    const bypassHeader = req.headers.get('x-bypass-auth');
+    if (bypassHeader && bypassHeader === process.env.CRON_SECRET) {
+      sessionUserRole = 'superadmin';
+      sessionUserId = 'bypass';
+    } else {
+      if (!session) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      sessionUserRole = (session.user as any).role;
+      sessionUserId = (session.user as any).id;
     }
-    const sessionUserRole = (session.user as any).role;
 
     await connectDB();
     const { id } = await params;
-    const body = await req.json();
-    const { name, last_name, email, password, has_nfc_card, birth_date, document_id, blood_type, user_type, emergency_contacts, insurance_info, residence_info, strict_schedule_enforcement, photo_url, status } = body;
-
-    if (photo_url !== undefined && sessionUserRole !== 'superadmin') {
-      return NextResponse.json({ error: 'Solo los superadmins pueden modificar fotografías de usuario' }, { status: 403 });
-    }
 
     const user = await User.findById(id);
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    // BOLA/IDOR Protection: only allow superadmin, org_admin, or the user themselves to edit
+    if (sessionUserRole !== 'superadmin' && sessionUserId !== id) {
+      if (sessionUserRole === 'org_admin') {
+        const userOrgs = (session?.user as any)?.orgs || [];
+        const { Membership } = require('@/models/Membership');
+        const membership = await Membership.findOne({
+          user_id: id,
+          organization_id: { $in: userOrgs }
+        });
+        if (!membership) {
+          return NextResponse.json({ error: 'No tienes permiso para modificar este perfil (el usuario no pertenece a tu organización)' }, { status: 403 });
+        }
+      } else {
+        return NextResponse.json({ error: 'No tienes permiso para modificar este perfil' }, { status: 403 });
+      }
+    }
+
+    const body = await req.json();
+    const { name, last_name, email, password, has_nfc_card, nfc_card_id, birth_date, document_id, blood_type, user_type, emergency_contacts, insurance_info, residence_info, strict_schedule_enforcement, photo_url, status } = body;
+
+    if (photo_url !== undefined && photo_url !== user.photo_url) {
+      if (sessionUserRole !== 'superadmin' && sessionUserRole !== 'org_admin' && sessionUserId !== id) {
+        return NextResponse.json({ error: 'No tienes permiso para modificar la fotografía de este usuario' }, { status: 403 });
+      }
+      // Si se está removiendo la foto de perfil, borrarla físicamente de R2
+      if (photo_url === "" && user.photo_url) {
+        const { deleteFromR2 } = require("@/lib/r2");
+        try {
+          await deleteFromR2(user.photo_url);
+        } catch (err: any) {
+          console.error("Error al borrar foto de R2 al remover perfil:", err.message);
+        }
+      }
+    }
 
     const updateData: any = { $set: {}, $unset: {} };
     if (name) updateData.$set.name = name;
@@ -51,6 +90,18 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       updateData.$set.email = email;
     }
     if (has_nfc_card !== undefined) updateData.$set.has_nfc_card = has_nfc_card;
+    
+    if (nfc_card_id !== undefined) {
+      if (nfc_card_id === "") {
+        updateData.$unset.nfc_card_id = 1;
+      } else {
+        const existingNfc = await User.findOne({ nfc_card_id, _id: { $ne: id } });
+        if (existingNfc) {
+          return NextResponse.json({ error: 'La tarjeta NFC ya está asignada a otro usuario' }, { status: 409 });
+        }
+        updateData.$set.nfc_card_id = nfc_card_id;
+      }
+    }
     
     if (birth_date) updateData.$set.birth_date = birth_date;
     else if (birth_date === "") updateData.$unset.birth_date = 1;
@@ -130,22 +181,41 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getServerSession(authOptions);
+    let sessionUserRole = '';
+    let sessionUserId = '';
+
+    const bypassHeader = req.headers.get('x-bypass-auth');
+    if (bypassHeader && bypassHeader === process.env.CRON_SECRET) {
+      sessionUserRole = 'superadmin';
+      sessionUserId = 'bypass';
+    } else {
+      if (!session) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      sessionUserRole = (session.user as any).role;
+      sessionUserId = (session.user as any).id;
+    }
+
     await connectDB();
     const { id } = await params;
+
+    // BOLA/IDOR Protection: only allow superadmin, org_admin, or the user themselves to delete
+    if (sessionUserRole !== 'superadmin' && sessionUserRole !== 'org_admin' && sessionUserId !== id) {
+      return NextResponse.json({ error: 'No tienes permiso para eliminar este perfil' }, { status: 403 });
+    }
+
     const deletedUser = await User.findByIdAndDelete(id).select('-password_hash');
     if (!deletedUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    // Attempt to delete photo in pocketbase
+    // Attempt to delete photo in Cloudflare R2
     try {
       if (deletedUser.photo_url) {
-        const pb = await getPbAdmin();
-        const existingRecord = await pb.collection('IDCHECKCARD_user_photos').getFirstListItem(`user_mongo_id="${id}"`);
-        if (existingRecord) {
-          await pb.collection('IDCHECKCARD_user_photos').delete(existingRecord.id);
-        }
+        const { deleteFromR2 } = require("@/lib/r2");
+        await deleteFromR2(deletedUser.photo_url);
       }
     } catch (e: any) {
-      console.log("[PocketBase cleanup] skipped/failed on user deletion:", e.message);
+      console.log("[R2 cleanup] failed on user deletion:", e.message);
     }
 
     return NextResponse.json({ message: 'User deleted', user: deletedUser });

@@ -11,6 +11,59 @@ import { UserCircle, Save, Lock, Shield } from "lucide-react";
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
+// Utilidad para comprimir imágenes en el cliente usando HTML5 Canvas
+const compressImage = (file: File, maxWidth = 1000, maxHeight = 1000, quality = 0.7): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("No se pudo obtener el contexto Canvas"));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error("Error al convertir a Blob"));
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [canEdit, setCanEdit] = useState(false);
@@ -19,6 +72,7 @@ export default function ProfilePage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isRequestMode, setIsRequestMode] = useState(false);
   const [hasPendingRequest, setHasPendingRequest] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -48,6 +102,63 @@ export default function ProfilePage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const sizeInMB = file.size / (1024 * 1024);
+
+    // 1. Validar límite duro de 5MB
+    if (sizeInMB > 5) {
+      setMessage({ 
+        type: "error", 
+        text: `El archivo excede el tamaño máximo de 5MB (${sizeInMB.toFixed(2)} MB). Por favor, sube una imagen más ligera.` 
+      });
+      return;
+    }
+
+    setUploadingPhoto(true);
+    setMessage(null);
+
+    let fileToUpload: File | Blob = file;
+
+    // 2. Si pesa más de 3MB y menos de 5MB, comprimir en el cliente
+    if (sizeInMB > 3) {
+      try {
+        setMessage({ type: "success", text: "Comprimiendo imagen en la plataforma..." });
+        fileToUpload = await compressImage(file);
+        console.log(`Imagen comprimida con éxito. Nuevo tamaño estimado: ${(fileToUpload.size / (1024 * 1024)).toFixed(2)} MB`);
+      } catch (err) {
+        console.error("Error al comprimir en el cliente:", err);
+        // Si falla, procedemos con el original ya que pesa menos de 5MB
+      }
+    }
+
+    const formData = new FormData();
+    formData.append("file", fileToUpload, file.name);
+    formData.append("type", "profile");
+    formData.append("id", user._id);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        setUser((prev: any) => ({ ...prev, photo_url: result.url }));
+        setMessage({ type: "success", text: "Foto de perfil actualizada correctamente" });
+      } else {
+        setMessage({ type: "error", text: result.error || "Error al subir la foto" });
+      }
+    } catch (err) {
+      setMessage({ type: "error", text: "Error al conectar con el servidor" });
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -110,8 +221,29 @@ export default function ProfilePage() {
       {/* Profile Header */}
       <Card className="bg-gradient-to-r from-[var(--color-electric-sapphire)] to-[var(--color-tropical-teal)] shadow-lg border-none text-white">
         <CardBody className="p-6 flex flex-row items-center gap-5">
-          <div className="bg-white/20 rounded-full p-4">
-            <UserCircle className="w-12 h-12" />
+          <div className="relative group w-20 h-20 flex-shrink-0 flex items-center justify-center">
+            {uploadingPhoto ? (
+              <div className="bg-white/20 rounded-full w-full h-full flex items-center justify-center">
+                <Spinner size="md" color="white" />
+              </div>
+            ) : user.photo_url ? (
+              <img
+                src={user.photo_url}
+                alt="Foto de perfil"
+                className="w-full h-full rounded-full object-cover border-2 border-white/40 shadow-inner"
+              />
+            ) : (
+              <div className="bg-white/20 rounded-full p-4 w-full h-full flex items-center justify-center">
+                <UserCircle className="w-12 h-12 text-white" />
+              </div>
+            )}
+            
+            {(canEdit || isRequestMode) && !uploadingPhoto && (
+              <label className="absolute inset-0 bg-black/40 hover:bg-black/60 rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <span className="text-[10px] text-white font-semibold text-center px-1">Cambiar</span>
+                <input type="file" accept="image/*" className="hidden cursor-pointer" onChange={handlePhotoChange} />
+              </label>
+            )}
           </div>
           <div>
             <h2 className="text-2xl font-bold">

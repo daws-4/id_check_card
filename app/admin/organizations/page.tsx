@@ -26,17 +26,18 @@ interface Organization {
 const orgTypesTranslations: Record<string, string> = {
   company: "Empresa",
   school: "Escuela",
+  membership_venue: "Local con Membresía",
   university: "Universidad",
   hospital: "Hospital / Clínica",
   factory: "Fábrica / Industria",
-  coworking: "Espacio de Coworking",
+  coworking: "Espacio de Coworking (Legacy)",
   residential: "Conjunto Residencial",
   club: "Club Deportivo",
   event: "Evento / Conferencia",
   government: "Entidad Institucional / Gobs",
   ngo: "ONG / Fundación",
   library: "Biblioteca",
-  gym: "Gimnasio",
+  gym: "Gimnasio (Legacy)",
   other: "Otro"
 };
 
@@ -215,7 +216,7 @@ export default function OrganizationsPage() {
                         </DropdownTrigger>
                         <DropdownMenu aria-label="Acciones">
                           <DropdownItem key="view" href={`/org/${org._id}`}>Ver Panel</DropdownItem>
-                          <DropdownItem key="edit" onPress={() => handleOpenModal(org)}>Editar</DropdownItem>
+                          <DropdownItem key="edit" href={`/admin/organizations/${org._id}`}>Editar</DropdownItem>
                           <DropdownItem key="delete" className="text-danger" color="danger" onPress={() => handleDelete(org._id)}>Eliminar</DropdownItem>
                         </DropdownMenu>
                       </Dropdown>
@@ -250,17 +251,18 @@ export default function OrganizationsPage() {
                 >
                   <SelectItem key="company">Empresa</SelectItem>
                   <SelectItem key="school">Escuela</SelectItem>
+                  <SelectItem key="membership_venue">Local con Membresía</SelectItem>
                   <SelectItem key="university">Universidad</SelectItem>
                   <SelectItem key="hospital">Hospital / Clínica</SelectItem>
                   <SelectItem key="factory">Fábrica / Industria</SelectItem>
-                  <SelectItem key="coworking">Espacio de Coworking</SelectItem>
+                  <SelectItem key="coworking">Espacio de Coworking (Legacy)</SelectItem>
                   <SelectItem key="residential">Conjunto Residencial</SelectItem>
                   <SelectItem key="club">Club Deportivo</SelectItem>
                   <SelectItem key="event">Evento / Conferencia</SelectItem>
                   <SelectItem key="government">Entidad Institucional / Gobs</SelectItem>
                   <SelectItem key="ngo">ONG / Fundación</SelectItem>
                   <SelectItem key="library">Biblioteca</SelectItem>
-                  <SelectItem key="gym">Gimnasio</SelectItem>
+                  <SelectItem key="gym">Gimnasio (Legacy)</SelectItem>
                   <SelectItem key="other">Otro</SelectItem>
                 </Select>
                 <div className="flex gap-2 items-end">

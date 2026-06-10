@@ -4,6 +4,7 @@ export interface IOrganization extends Document {
   name: string;
   type: string;
   tax_id?: string;
+  logo_url?: string;
   settings: Record<string, any>; // basic configs
   billing_plan?: 'default' | 'custom' | 'none';
   billing_rates?: {
@@ -13,7 +14,9 @@ export interface IOrganization extends Document {
   };
   // Notification controls
   notifications_enabled: boolean;
-  whatsapp_billing_enabled: boolean;
+  // Subscription details
+  subscription_tier: number;
+  max_users_limit: number;
 }
 
 const OrganizationSchema: Schema = new Schema({
@@ -31,6 +34,7 @@ const OrganizationSchema: Schema = new Schema({
       message: 'El RIF debe comenzar con J- seguido de números'
     }
   },
+  logo_url: { type: String },
   settings: { type: Schema.Types.Mixed, default: {} },
   billing_plan: { type: String, enum: ['default', 'custom', 'none'], default: 'none' },
   billing_rates: {
@@ -40,7 +44,9 @@ const OrganizationSchema: Schema = new Schema({
   },
   // Notification controls (disabled by default)
   notifications_enabled: { type: Boolean, default: false },
-  whatsapp_billing_enabled: { type: Boolean, default: false },
+  // Subscription management
+  subscription_tier: { type: Number, enum: [1, 2, 3, 4], default: 1 },
+  max_users_limit: { type: Number, default: 50 },
 }, { timestamps: true });
 
 export const Organization: Model<IOrganization> = mongoose.models.Organization || mongoose.model<IOrganization>('Organization', OrganizationSchema);

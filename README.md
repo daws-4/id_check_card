@@ -461,3 +461,8 @@ A continuación, se desglosan las fases en tareas accionables para facilitar el 
 - [ ] Crear interfaz en panel de usuario/representante para seleccionar canales de notificación y vincular Telegram/WhatsApp.
 - [ ] Crear componente de upload de foto en el panel de miembros de organización (con previsualización y crop).
 - [ ] Crear formulario de contactos de emergencia en el perfil de usuario.
+
+### 🏢 Expansión del Ecosistema (Gimnasios y Coworkings)
+- [ ] Integrar el tipo de usuario "Cliente" (`client`) para viabilizar negocios donde los registrados no son estudiantes ni trabajadores.
+- [ ] Adaptar los formularios y selectores de perfiles en los paneles administrativos para soportar el alta y gestión de clientes.
+- [ ] Ajustar la semántica de la plataforma, validaciones de notificaciones y métricas para que tengan sentido en el contexto B2C (acceso a instalaciones por membresía).

@@ -21,13 +21,19 @@ declare module "@react-types/shared" {
   }
 }
 
+import { SidebarProvider } from "@/components/SidebarContext";
+
 export function Providers({ children, themeProps }: ProvidersProps) {
   const router = useRouter();
 
   return (
     <SessionProvider>
       <HeroUIProvider navigate={router.push}>
-        <NextThemesProvider {...themeProps}>{children}</NextThemesProvider>
+        <NextThemesProvider {...themeProps}>
+          <SidebarProvider>
+            {children}
+          </SidebarProvider>
+        </NextThemesProvider>
       </HeroUIProvider>
     </SessionProvider>
   );

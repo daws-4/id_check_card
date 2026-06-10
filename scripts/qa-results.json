@@ -1,7 +1,7 @@
 {
-  "passed": 40,
+  "passed": 39,
   "failed": 0,
-  "total": 40,
+  "total": 39,
   "results": [
     {
       "test": "Crear usuario Alexandra",
@@ -146,7 +146,7 @@
     {
       "test": "ESP32 reloc correct org",
       "ok": true,
-      "detail": "69d02ca76224557f5ca4087d vs 69d02ca76224557f5ca4087d"
+      "detail": "6a29905d8b987b064b2c12b4 vs 6a29905d8b987b064b2c12b4"
     },
     {
       "test": "Notif opt-in vacio skipped",
@@ -174,11 +174,6 @@
       "detail": "ValidationError"
     },
     {
-      "test": "WhatsApp no billing skipped",
-      "ok": true,
-      "detail": "true"
-    },
-    {
       "test": "Fire-and-forget (attendance OK despite no n8n)",
       "ok": true,
       "detail": "already OK"
@@ -186,22 +181,22 @@
     {
       "test": "Perf /users?type=users <500ms",
       "ok": true,
-      "detail": "95ms"
+      "detail": "281ms"
     },
     {
       "test": "Perf /organizations <500ms",
       "ok": true,
-      "detail": "98ms"
+      "detail": "200ms"
     },
     {
       "test": "Perf /attendance <500ms",
       "ok": true,
-      "detail": "170ms"
+      "detail": "196ms"
     },
     {
       "test": "Perf /readers <500ms",
       "ok": true,
-      "detail": "165ms"
+      "detail": "238ms"
     }
   ]
 }

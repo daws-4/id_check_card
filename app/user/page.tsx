@@ -46,11 +46,34 @@ export default function UserDashboard() {
   const [completing, setCompleting] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/user/dashboard")
-      .then((r) => r.json())
-      .then(setData)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    const fetchDashboard = () => {
+      fetch("/api/user/dashboard")
+        .then((r) => r.json())
+        .then(setData)
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    };
+
+    // Initial load
+    fetchDashboard();
+
+    // SSE connection for dynamic updates
+    const evtSource = new EventSource("/api/stream");
+    
+    evtSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.userId) {
+          fetchDashboard(); 
+        }
+      } catch (e) {
+        // Ignore parse errors (e.g. keep-alive messages)
+      }
+    };
+
+    return () => {
+      evtSource.close();
+    };
   }, []);
 
   const handleCompleteTask = async (taskId: string) => {

@@ -53,6 +53,10 @@ export default function MembersPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
+  // Subscription capacity states
+  const [orgLimit, setOrgLimit] = useState<number | null>(null);
+  const [orgActiveCount, setOrgActiveCount] = useState<number>(0);
+
   // Form State
   const [mode, setMode] = useState<"select" | "create">("select");
   const [selectedUserId, setSelectedUserId] = useState("");
@@ -76,9 +80,11 @@ export default function MembersPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [membersRes, usersRes] = await Promise.all([
+      const [membersRes, usersRes, orgRes, previewRes] = await Promise.all([
         fetch(`/api/memberships?organization_id=${orgId}&page=${page}&limit=${limit}&search=${search}`),
-        fetch("/api/users?limit=100") // Limiting available users to attach
+        fetch("/api/users?limit=100"),
+        fetch(`/api/organizations/${orgId}`),
+        fetch(`/api/billing/preview/${orgId}`)
       ]);
       
       if (membersRes.ok) {
@@ -90,6 +96,14 @@ export default function MembersPage() {
       if (usersRes.ok) {
         const data = await usersRes.json();
         setUsers(data.users || data);
+      }
+      if (orgRes.ok) {
+        const orgData = await orgRes.json();
+        setOrgLimit(orgData.max_users_limit || 50);
+      }
+      if (previewRes.ok) {
+        const previewData = await previewRes.json();
+        setOrgActiveCount(previewData.active_users_count || 0);
       }
     } catch (error) {
       console.error("Failed to fetch data", error);
@@ -117,6 +131,11 @@ export default function MembersPage() {
 
   const handleAddMember = async (onClose: () => void) => {
     try {
+      if (orgLimit !== null && orgActiveCount >= orgLimit) {
+        alert(`Límite de usuarios alcanzado (${orgActiveCount} / ${orgLimit}). No puedes agregar más miembros en tu plan actual. Contacta al administrador del sistema.`);
+        return;
+      }
+
       setIsSubmitting(true);
       
       let finalUserId = selectedUserId;
@@ -140,8 +159,8 @@ export default function MembersPage() {
           }),
         });
         if (!createRes.ok) {
-           const errData = await createRes.json();
-           alert(`Error: ${errData.error || "El correo ya existe para este rol"}`);
+           const errData = await createRes.json().catch(() => ({}));
+           alert(`Error: ${errData.message || errData.error || "El correo ya existe para este rol"}`);
            console.error("Failed to create user", errData);
            setIsSubmitting(false);
            return;
@@ -168,7 +187,8 @@ export default function MembersPage() {
         });
         
         if (!res.ok) {
-          console.error("Failed to add member");
+          const errData = await res.json().catch(() => ({}));
+          alert(`Error al asociar miembro: ${errData.message || errData.error || "No se pudo procesar la solicitud"}`);
           setIsSubmitting(false);
           return;
         }
@@ -292,8 +312,19 @@ export default function MembersPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Miembros de la Organización</h2>
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-3">
+          <h2 className="text-2xl font-bold">Miembros de la Organización</h2>
+          {orgLimit !== null && (
+            <span className={`text-xs font-semibold px-3 py-1 rounded-full border inline-flex w-fit items-center gap-1.5 ${
+              orgActiveCount >= orgLimit
+                ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200/50'
+                : 'bg-gray-50 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 border-divider'
+            }`}>
+              Capacidad: {orgActiveCount} / {orgLimit} activos {orgActiveCount >= orgLimit && '⚠️ Límite Alcanzado'}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {selectedCount > 0 && (
             <>
@@ -330,8 +361,13 @@ export default function MembersPage() {
               {[15, 30, 50, 100].map(l => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
-          <Button color="primary" onPress={handleOpenModal} startContent={<Plus className="w-4 h-4" />}>
-            Agregar Miembro
+          <Button 
+            color={orgLimit !== null && orgActiveCount >= orgLimit ? "danger" : "primary"} 
+            onPress={handleOpenModal} 
+            startContent={<Plus className="w-4 h-4" />}
+            isDisabled={orgLimit !== null && orgActiveCount >= orgLimit}
+          >
+            {orgLimit !== null && orgActiveCount >= orgLimit ? "Límite Alcanzado" : "Agregar Miembro"}
           </Button>
         </div>
       </div>

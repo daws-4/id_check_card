@@ -3,6 +3,7 @@ import connectDB from '@/config/db';
 import { User } from '@/models/User';
 import { Membership } from '@/models/Membership';
 import crypto from 'crypto';
+import { checkUserLimitReached } from '@/lib/subscription';
 
 export async function GET(req: NextRequest) {
   try {
@@ -111,6 +112,17 @@ export async function POST(req: Request) {
     if (emergency_contacts) createPayload.emergency_contacts = emergency_contacts;
     if (insurance_info) createPayload.insurance_info = insurance_info;
     if (residence_info) createPayload.residence_info = residence_info;
+
+    // Validar preventivamente límites si hay una organización asociada a esta creación
+    if (organization_id) {
+      const limitCheck = await checkUserLimitReached(organization_id);
+      if (limitCheck.limitReached) {
+        return NextResponse.json({
+          error: 'Forbidden',
+          message: `Límite de usuarios activos alcanzado para la suscripción actual de la organización. Permitidos: ${limitCheck.limit}, actuales: ${limitCheck.currentCount}. Solicita una mejora de plan al Super Admin.`
+        }, { status: 403 });
+      }
+    }
 
     const newUser = await User.create(createPayload);
 

@@ -4,6 +4,7 @@ import { User } from '@/models/User';
 import { BillingConfig, IBillingConfig } from '@/models/BillingConfig';
 import { Organization } from '@/models/Organization';
 import mongoose from 'mongoose';
+import { SUBSCRIPTION_TIERS } from './subscription';
 
 export interface BillingPreview {
   organization_id: string;
@@ -29,6 +30,13 @@ export function getRatesForOrgType(config: IBillingConfig, orgType: string) {
     cost_per_user: override ? override.cost_per_active_user : config.default_cost_per_active_user,
     cost_per_reader: override ? override.cost_per_active_reader : config.default_cost_per_active_reader,
   };
+}
+
+export function calculateDefaultUserCost(orgType: string, tier: number): number {
+  const typeKey = orgType.toLowerCase();
+  const tiers = SUBSCRIPTION_TIERS[typeKey] || SUBSCRIPTION_TIERS['default'];
+  const matched = tiers.find(t => t.tier === tier);
+  return matched ? matched.monthlyCost : 0;
 }
 
 /**
@@ -63,20 +71,25 @@ export async function calculateOrgBilling(orgId: string, config: IBillingConfig)
     status: 'active',
   });
 
-  let rates = getRatesForOrgType(config, org.type);
+  let rates = { cost_per_user: 0, cost_per_reader: config.default_cost_per_active_reader };
   let currency = config.currency as 'USD' | 'VES';
+  let subtotalUsers = 0;
 
   if (org.billing_plan === 'custom' && org.billing_rates) {
     rates = {
-      cost_per_user: org.billing_rates.cost_per_active_user ?? rates.cost_per_user,
-      cost_per_reader: org.billing_rates.cost_per_active_reader ?? rates.cost_per_reader,
+      cost_per_user: org.billing_rates.cost_per_active_user ?? 0,
+      cost_per_reader: org.billing_rates.cost_per_active_reader ?? config.default_cost_per_active_reader,
     };
     if (org.billing_rates.currency) {
       currency = org.billing_rates.currency as 'USD' | 'VES';
     }
+    subtotalUsers = activeUsersCount * rates.cost_per_user;
+  } else if (org.billing_plan === 'default') {
+    const tier = (org as any).subscription_tier || 1;
+    subtotalUsers = calculateDefaultUserCost(org.type, tier);
+    rates.cost_per_user = activeUsersCount > 0 ? (subtotalUsers / activeUsersCount) : 0;
   }
 
-  const subtotalUsers = activeUsersCount * rates.cost_per_user;
   const subtotalReaders = activeReadersCount * rates.cost_per_reader;
   const total = subtotalUsers + subtotalReaders;
 
@@ -103,10 +116,13 @@ export async function getOrCreateBillingConfig(): Promise<IBillingConfig> {
   if (!config) {
     config = await BillingConfig.create({
       default_cost_per_active_user: 1.00,
-      default_cost_per_active_reader: 5.00,
+      default_cost_per_active_reader: 10.00, // Ajustado a $10.00 según plan de ventas
       currency: 'USD',
       billing_cycle: 'monthly',
     });
+  } else if (config.default_cost_per_active_reader !== 10.00) {
+    config.default_cost_per_active_reader = 10.00;
+    await config.save();
   }
   return config;
 }

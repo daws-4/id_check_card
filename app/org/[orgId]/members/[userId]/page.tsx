@@ -13,6 +13,59 @@ import { Switch } from "@heroui/switch";
 import { Spinner } from "@heroui/spinner";
 import { ArrowLeft, User as UserIcon, Contact, Activity, QrCode, ExternalLink, Building2, Copy, Check, HeartPulse, ShieldAlert, Upload, Trash2, CreditCard, ZoomIn, Mail, Key, ShieldCheck } from "lucide-react";
 
+// Utilidad para comprimir imágenes en el cliente usando HTML5 Canvas
+const compressImage = (file: File, maxWidth = 1000, maxHeight = 1000, quality = 0.7): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("No se pudo obtener el contexto Canvas"));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error("Error al convertir a Blob"));
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgId: string; userId: string }> }) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const { isOpen: isPwdOpen, onOpen: onPwdOpen, onOpenChange: onPwdOpenChange } = useDisclosure();
@@ -118,22 +171,41 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const sizeInMB = file.size / (1024 * 1024);
+
+    // 1. Validar límite duro de 5MB
+    if (sizeInMB > 5) {
+      alert(`El archivo excede el tamaño máximo de 5MB (${sizeInMB.toFixed(2)} MB). Por favor, sube una imagen más ligera.`);
+      return;
+    }
+
     setIsUploadingPhoto(true);
+    let fileToUpload: File | Blob = file;
+
+    // 2. Si pesa más de 3MB, comprimir en el cliente
+    if (sizeInMB > 3) {
+      try {
+        fileToUpload = await compressImage(file);
+      } catch (err) {
+        console.error("Error al comprimir en el cliente:", err);
+      }
+    }
+
     try {
       const form = new FormData();
-      form.append("photo", file);
-      form.append("user_id", id);
-      form.append("photo_type", "profile");
+      form.append("file", fileToUpload, file.name);
+      form.append("type", "profile");
+      form.append("id", id);
 
-      const res = await fetch("/api/pocketbase/upload", {
+      const res = await fetch("/api/upload", {
         method: "POST",
         body: form,
       });
 
       if (res.ok) {
         const data = await res.json();
-        setFormData({ ...formData, photo_url: data.photo_url });
-        alert("Foto actualizada y vinculada correctamente en Pocketbase");
+        setFormData({ ...formData, photo_url: data.url });
+        alert("Fotografía de perfil actualizada con éxito en Cloudflare R2");
         fetchData();
       } else {
         const err = await res.json();
@@ -203,12 +275,6 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
     if (!confirm("¿Seguro que deseas eliminar la foto de este usuario?")) return;
     setSaving(true);
     try {
-      await fetch("/api/pocketbase/photo", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: id }),
-      });
-
       const res = await fetch(`/api/users/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -216,6 +282,7 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
       });
       if (res.ok) {
         setFormData({ ...formData, photo_url: "" });
+        alert("Fotografía eliminada correctamente");
       } else {
         const err = await res.json();
         alert(err.error || "Error al eliminar la foto");
@@ -418,67 +485,65 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
               </CardBody>
             </Card>
 
-            {isSuperAdmin && (
-              <Card className="shadow-sm border border-divider bg-content1">
-                <CardBody className="p-6 space-y-4">
-                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 border-b border-divider pb-2 mb-4">Fotografía Facial</h4>
-                  <div className="flex flex-col gap-3">
-                    {formData.photo_url ? (
-                      <div className="relative group mx-auto mb-2">
-                        <div className="w-32 h-32 rounded-xl overflow-hidden border border-divider shadow-inner bg-default-50 flex items-center justify-center cursor-pointer" onClick={() => { setZoom(1); onOpen(); }}>
-                           <img src={formData.photo_url} alt="Foto" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                        </div>
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          variant="flat"
-                          className="absolute bottom-1 right-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 text-white backdrop-blur-md border border-white/20"
-                          onPress={() => { setZoom(1); onOpen(); }}
-                        >
-                          <ZoomIn className="w-4 h-4 text-white" />
-                        </Button>
+            <Card className="shadow-sm border border-divider bg-content1">
+              <CardBody className="p-6 space-y-4">
+                <h4 className="font-semibold text-gray-700 dark:text-gray-300 border-b border-divider pb-2 mb-4">Fotografía Facial</h4>
+                <div className="flex flex-col gap-3">
+                  {formData.photo_url ? (
+                    <div className="relative group mx-auto mb-2">
+                      <div className="w-32 h-32 rounded-xl overflow-hidden border border-divider shadow-inner bg-default-50 flex items-center justify-center cursor-pointer" onClick={() => { setZoom(1); onOpen(); }}>
+                         <img src={formData.photo_url} alt="Foto" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                       </div>
-                    ) : (
-                    <div className="w-32 h-32 rounded-xl border border-dashed border-divider mx-auto mb-2 flex flex-col items-center justify-center text-gray-400 bg-default-50/50">
-                      <UserIcon className="w-8 h-8 mb-1 opacity-50" />
-                      <span className="text-xs font-medium">Sin foto</span>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 w-full">
-                    <Button 
-                      color="primary" 
-                      variant="flat"
-                      isLoading={isUploadingPhoto} 
-                      className="relative overflow-hidden w-full flex-1"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {formData.photo_url ? "Reemplazar" : "Subir foto"}
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handlePhotoUpload}
-                        disabled={isUploadingPhoto}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-[0]" 
-                      />
-                    </Button>
-
-                    {formData.photo_url && (
                       <Button
                         isIconOnly
-                        color="danger"
+                        size="sm"
                         variant="flat"
-                        onPress={handleRemovePhoto}
-                        isLoading={saving}
+                        className="absolute bottom-1 right-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 text-white backdrop-blur-md border border-white/20"
+                        onPress={() => { setZoom(1); onOpen(); }}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <ZoomIn className="w-4 h-4 text-white" />
                       </Button>
-                    )}
+                    </div>
+                  ) : (
+                  <div className="w-32 h-32 rounded-xl border border-dashed border-divider mx-auto mb-2 flex flex-col items-center justify-center text-gray-400 bg-default-50/50">
+                    <UserIcon className="w-8 h-8 mb-1 opacity-50" />
+                    <span className="text-xs font-medium">Sin foto</span>
                   </div>
+                )}
+
+                <div className="flex gap-2 w-full">
+                  <Button 
+                    color="primary" 
+                    variant="flat"
+                    isLoading={isUploadingPhoto} 
+                    className="relative overflow-hidden w-full flex-1"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {formData.photo_url ? "Reemplazar" : "Subir foto"}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handlePhotoUpload}
+                      disabled={isUploadingPhoto}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-[0]" 
+                    />
+                  </Button>
+
+                  {formData.photo_url && (
+                    <Button
+                      isIconOnly
+                      color="danger"
+                      variant="flat"
+                      onPress={handleRemovePhoto}
+                      isLoading={saving}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
-              </CardBody>
-            </Card>
-            )}
+              </div>
+            </CardBody>
+          </Card>
 
             <Card className="shadow-sm border border-divider bg-content1 md:col-span-2">
               <CardBody className="p-6 space-y-4">

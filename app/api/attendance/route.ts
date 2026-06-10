@@ -38,7 +38,7 @@ export async function GET(req: Request) {
     
     const queryStart = Date.now();
     const logs = await AttendanceLog.find(filter)
-      .populate('user_id', 'name email nfc_card_id')
+      .populate('user_id', 'name last_name email photo_url document_id blood_type user_type')
       .populate('reader_id', 'location esp32_id')
       .sort({ timestamp: -1 })
       .limit(100);
@@ -101,10 +101,22 @@ export async function POST(req: Request) {
     const organization_id = reader.organization_id;
     console.log(`${TAG} POST organization_id=${organization_id}`);
 
-    // 2. Find User
+    // 2. Find User (first check nfc_card_id, fallback to _id)
     const step2 = Date.now();
-    const user = await User.findOne({ nfc_card_id: card_id });
-    console.log(`${TAG} [Step 2] Find User by nfc_card_id="${card_id}" (${elapsed(step2)}):`, user ? `found → id=${user._id}, name=${user.name}, email=${user.email}` : 'NOT FOUND');
+    let user = null;
+    try {
+      user = await User.findOne({ nfc_card_id: card_id });
+    } catch (e) {
+      // Ignored: Query error
+    }
+    if (!user) {
+      try {
+        user = await User.findById(card_id);
+      } catch (e) {
+        // Ignored: Invalid ObjectId format
+      }
+    }
+    console.log(`${TAG} [Step 2] Find User by _id="${card_id}" (${elapsed(step2)}):`, user ? `found → id=${user._id}, name=${user.name}, email=${user.email}` : 'NOT FOUND');
     if (!user) {
       console.warn(`${TAG} POST 404 — User not found for card_id="${card_id}"`);
       return NextResponse.json(
@@ -253,6 +265,9 @@ export async function POST(req: Request) {
       const baseUrl = req.headers.get('host') ? `${req.headers.get('x-forwarded-proto') || 'http'}://${req.headers.get('host')}` : '';
       console.log(`${TAG} [Step 7] Notification webhook baseUrl="${baseUrl}"`);
       if (baseUrl) {
+        // Broadcast via SSE update
+        fetch(`${baseUrl}/api/stream?userId=${user_id}`).catch((err) => console.error('SSE trigger error', err));
+
         const notifPayload = {
           user_id: user_id.toString(),
           organization_id: organization_id.toString(),

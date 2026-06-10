@@ -4,6 +4,7 @@ import mongoose, { Model } from 'mongoose';
 import { Membership as MembershipModel, IMembership } from '@/models/Membership';
 import { User } from '@/models/User';
 import { Organization } from '@/models/Organization';
+import { checkUserLimitReached } from '@/lib/subscription';
 
 const Membership = MembershipModel;
 
@@ -104,6 +105,15 @@ export async function POST(req: Request) {
     const existingMembership = await Membership.findOne({ user_id, organization_id });
     if (existingMembership) {
       return NextResponse.json({ error: 'Membership already exists' }, { status: 409 });
+    }
+
+    // Verificar si la organización alcanzó el límite de usuarios activos de su plan
+    const limitCheck = await checkUserLimitReached(organization_id);
+    if (limitCheck.limitReached) {
+      return NextResponse.json({
+        error: 'Forbidden',
+        message: `Límite de usuarios activos alcanzado para la suscripción actual de la organización. Permitidos: ${limitCheck.limit}, actuales: ${limitCheck.currentCount}. Solicita una mejora de plan al Super Admin.`
+      }, { status: 403 });
     }
 
     const newMembership = await Membership.create({
