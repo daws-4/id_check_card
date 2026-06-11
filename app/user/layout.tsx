@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { LayoutDashboard, Calendar, ListChecks, BarChart3, UserCircle, Building2, Menu } from "lucide-react";
+import { LayoutDashboard, Calendar, ListChecks, BarChart3, UserCircle, Building2, Menu, CreditCard } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import { useSidebar } from "@/components/SidebarContext";
 
@@ -15,6 +15,7 @@ export default function UserLayout({ children }: { children: ReactNode }) {
   const navItems = [
     { href: "/user", label: "Inicio", icon: LayoutDashboard },
     { href: "/user/organizations", label: "Mis Organizaciones", icon: Building2 },
+    { href: "/user/memberships", label: "Mis Membresías", icon: CreditCard },
     { href: "/user/schedules", label: "Horarios", icon: Calendar },
     { href: "/user/tasks", label: "Tareas", icon: ListChecks },
     { href: "/user/metrics", label: "Métricas", icon: BarChart3 },

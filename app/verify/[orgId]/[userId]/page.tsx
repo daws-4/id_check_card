@@ -12,6 +12,7 @@ import {
   User as UserIcon,
   AlertCircle,
   FileText,
+  CreditCard,
 } from "lucide-react";
 
 interface VerifyData {
@@ -32,6 +33,14 @@ interface VerifyData {
   };
   verified: boolean;
   verified_at: string;
+  membership_status?: {
+    plan_status: string;
+    plan_name: string;
+    expiration_date: string | null;
+    remaining_sessions?: number;
+    in_grace_period: boolean;
+    grace_period_days?: number;
+  } | null;
 }
 
 export default function VerifyProfilePage() {
@@ -81,32 +90,49 @@ export default function VerifyProfilePage() {
     );
   }
 
-  const { user, organization, verified, verified_at } = data;
+  const { user, organization, verified, verified_at, membership_status } = data;
   const fullName = `${user.name} ${user.last_name}`.trim();
   const verifiedDate = new Date(verified_at);
+
+  const getBannerConfig = () => {
+    if (verified) {
+      if (membership_status?.in_grace_period) {
+        return {
+          className: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
+          icon: <AlertCircle className="w-5 h-5 text-amber-400" />,
+          label: "PERIODO DE GRACIA (VENCIDO)"
+        };
+      }
+      return {
+        className: "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30",
+        icon: <ShieldCheck className="w-5 h-5 text-emerald-400" />,
+        label: "USUARIO VERIFICADO"
+      };
+    } else {
+      if (membership_status?.plan_status === 'expired') {
+        return {
+          className: "bg-red-500/20 text-red-300 border border-red-500/30",
+          icon: <ShieldX className="w-5 h-5 text-red-400" />,
+          label: "ACCESO DENEGADO - PLAN VENCIDO"
+        };
+      }
+      return {
+        className: "bg-red-500/20 text-red-300 border border-red-500/30",
+        icon: <ShieldX className="w-5 h-5 text-red-400" />,
+        label: "ACCESO DENEGADO / INACTIVO"
+      };
+    }
+  };
+
+  const banner = getBannerConfig();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Status Banner */}
-        <div
-          className={`flex items-center justify-center gap-2 py-3 px-4 rounded-t-2xl text-sm font-semibold ${
-            verified
-              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-              : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-          }`}
-        >
-          {verified ? (
-            <>
-              <ShieldCheck className="w-5 h-5" />
-              USUARIO VERIFICADO
-            </>
-          ) : (
-            <>
-              <AlertCircle className="w-5 h-5" />
-              CUENTA PENDIENTE
-            </>
-          )}
+        <div className={`flex items-center justify-center gap-2 py-3 px-4 rounded-t-2xl text-sm font-semibold ${banner.className}`}>
+          {banner.icon}
+          {banner.label}
         </div>
 
         {/* Main Card */}
@@ -157,6 +183,34 @@ export default function VerifyProfilePage() {
               </div>
             </div>
           </div>
+
+          {/* Membership Status Info */}
+          {membership_status && (
+            <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02]">
+              <div className="flex items-center gap-3">
+                <div className="bg-teal-500/10 p-2 rounded-lg">
+                  <CreditCard className="w-5 h-5 text-teal-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-slate-500 uppercase tracking-wider">Plan de Membresía</p>
+                  <p className="text-white font-semibold text-sm">{membership_status.plan_name}</p>
+                  {membership_status.expiration_date && (
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Vence: {new Date(membership_status.expiration_date).toLocaleDateString('es-ES')} 
+                      {membership_status.in_grace_period && (
+                        <span className="text-amber-400 font-semibold ml-1.5">
+                          (Tolerancia activa)
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  {membership_status.remaining_sessions !== undefined && membership_status.remaining_sessions !== null && (
+                    <p className="text-xs text-slate-400">Sesiones restantes: {membership_status.remaining_sessions}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Blood Type */}
           {user.blood_type && (

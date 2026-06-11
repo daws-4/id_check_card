@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { LayoutDashboard, Users, UsersRound, CalendarPlus, Router, Receipt, ArrowLeft, Activity, Menu } from "lucide-react";
+import { LayoutDashboard, Users, UsersRound, CalendarPlus, Router, Receipt, ArrowLeft, Activity, Menu, CreditCard } from "lucide-react";
 import BillingTrigger from "@/components/BillingTrigger";
 import Sidebar from "@/components/Sidebar";
 import { useSidebar } from "@/components/SidebarContext";
@@ -27,6 +27,7 @@ export default function OrgLayout({ children }: { children: ReactNode }) {
   const navItems = [
     { href: `/org/${orgId}`, label: "Tablero", icon: LayoutDashboard },
     { href: `/org/${orgId}/members`, label: "Miembros", icon: Users },
+    { href: `/org/${orgId}/memberships`, label: "Membresías", icon: CreditCard },
     { href: `/org/${orgId}/groups`, label: "Grupos", icon: UsersRound },
     { href: `/org/${orgId}/attendance`, label: "Reportes", icon: CalendarPlus },
     { href: `/org/${orgId}/live`, label: "Monitor en vivo", icon: Activity },
