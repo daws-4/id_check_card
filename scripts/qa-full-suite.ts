@@ -93,6 +93,7 @@ async function main() {
   assert("Bulk delete verified", af4.length === 0, `remaining: ${af4.length}`);
 
   // 1d. Delete individual
+  await User.deleteMany({ email: "del@test.com" });
   const tmp = await User.create({ name: "ToDelete", email: "del@test.com", role: "user", status: "active" });
   const d = await api(`/users/${tmp._id}`, "DELETE");
   assert("Delete individual", d.status === 200, `${d.status}`);
@@ -155,6 +156,7 @@ async function main() {
   assert("ESP32 maintenance 403", m1.status === 403, `${m1.status}`);
   reader!.status = "active"; await reader!.save();
 
+  await User.deleteMany({ email: "out@test.com" });
   const out = await User.create({ name: "Outsider", email: "out@test.com", role: "user", status: "active" });
   const o1 = await api("/attendance", "POST", { card_id: out._id.toString(), esp32_id: readerIdStr });
   assert("ESP32 no membership 403", o1.status === 403, `${o1.status}`);
@@ -176,7 +178,7 @@ async function main() {
   assert("Notif opt-in vacio skipped", w1.data?.skipped === true, `${w1.data?.skipped}`);
 
   await Organization.findByIdAndUpdate(testOrg._id, { notifications_enabled: false });
-  await User.findByIdAndUpdate(aId, { notification_channels: ["push", "telegram"], user_type: "student" });
+  await User.findByIdAndUpdate(aId, { notification_channels: ["push", "email"], user_type: "student" });
   const w2 = await api("/webhooks/notifications", "POST", { user_id: aId, organization_id: testOrg._id, event_type: "entrada", timestamp: new Date().toISOString() });
   assert("Notif org disabled skipped", w2.data?.skipped === true, `${w2.data?.skipped}`);
 
@@ -185,13 +187,13 @@ async function main() {
   assert("Notif multichannel dispatched", w3.data?.skipped === false, `${w3.data?.skipped}`);
   assert("Notif has channels[]", Array.isArray(w3.data?.channels) && w3.data.channels.length > 0, `${JSON.stringify(w3.data?.channels)}`);
 
-  // Worker + telegram = mongoose reject
+  // Worker + email = mongoose reject
   try {
-    const wk = new User({ name: "WK", email: "wk@test.com", role: "user", user_type: "worker", notification_channels: ["telegram"] });
+    const wk = new User({ name: "WK", email: "wk@test.com", role: "user", user_type: "worker", notification_channels: ["email"] });
     await wk.validate();
-    assert("Worker telegram rejected", false, "not rejected");
+    assert("Worker email rejected", false, "not rejected");
   } catch (err: any) {
-    assert("Worker telegram rejected", err.name === "ValidationError", err.name);
+    assert("Worker email rejected", err.name === "ValidationError", err.name);
   }
 
   assert("Fire-and-forget (attendance OK despite no n8n)", e1.status === 200, "already OK");

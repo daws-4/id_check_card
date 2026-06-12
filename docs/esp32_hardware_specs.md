@@ -26,13 +26,15 @@
 
 ## Respuestas del Backend
 
-### ✅ 201 Created — Registro Exitoso
+### ✅ 200 OK — Registro Exitoso
 
-El backend detecta automáticamente si es **entrada** o **salida** basándose en el último registro del día para ese usuario en esa organización.
+El backend detecta automáticamente si es **entrada** o **salida** basándose en el último registro del día para ese usuario en esa organización, y retorna el nombre del usuario.
 
 ```json
 {
   "message": "Attendance logged successfully",
+  "userName": "Alexandra Alvarez",
+  "user_name": "Alexandra Alvarez",
   "log": {
     "_id": "69d02bf74523...",
     "user_id": "69c0b8f01...",
@@ -123,13 +125,15 @@ ESP32 envía { card_id, esp32_id }
 #include <ArduinoJson.h>
 
 const char* API_URL = "https://tu-dominio.com/api/attendance";
-const char* ESP32_ID = "ESP32_ENTRADA_01";
+const char* ESP32_ID = "ESP32_ENTRADA_01"; // ID del lector en base de datos
 
 void sendAttendance(String cardId) {
   HTTPClient http;
   http.begin(API_URL);
   http.addHeader("Content-Type", "application/json");
 
+  // Nota: Sintaxis compatible con ArduinoJson v6/v7
+  // Para ArduinoJson v7 se puede usar JsonDocument directamente sin especificar tamaño: JsonDocument doc;
   StaticJsonDocument<200> doc;
   doc["card_id"] = cardId;
   doc["esp32_id"] = ESP32_ID;
@@ -140,20 +144,49 @@ void sendAttendance(String cardId) {
   int httpCode = http.POST(body);
   String response = http.getString();
 
-  if (httpCode == 201) {
+  if (httpCode == 200) {
     // ✅ Registro exitoso
     StaticJsonDocument<512> resDoc;
     deserializeJson(resDoc, response);
-    const char* type = resDoc["log"]["type"];
-    // type == "entrada" → LED verde
-    // type == "salida"  → LED azul
+    
+    // Obtenemos el nombre completo del usuario retornado por el API
+    const char* userName = resDoc["userName"]; // o resDoc["user_name"]
+    const char* type = resDoc["log"]["type"];  // "entrada" o "salida"
+    
+    Serial.print("Acceso AUTORIZADO: ");
+    Serial.println(userName);
+    Serial.print("Tipo de evento: ");
+    Serial.println(type);
+    
+    // Acción física en ESP32:
+    // type == "entrada" → LED verde, mostrar userName en pantalla LCD/OLED
+    // type == "salida"  → LED azul, mostrar userName en pantalla LCD/OLED
     beepSuccess();
-  } else if (httpCode == 404) {
-    // ❌ Tarjeta o lector no reconocido
-    beepError();
-  } else if (httpCode == 403) {
-    // ❌ Sin permiso (mantenimiento o sin membresía)
-    beepWarning();
+  } else {
+    // ❌ Fallo o Acceso Denegado (400, 403, 404, 500)
+    StaticJsonDocument<256> resDoc;
+    deserializeJson(resDoc, response);
+    const char* errorMsg = resDoc["error"];
+    
+    Serial.print("Acceso DENEGADO (HTTP ");
+    Serial.print(httpCode);
+    Serial.print("): ");
+    if (errorMsg) {
+      Serial.println(errorMsg);
+    } else {
+      Serial.println("Error desconocido");
+    }
+
+    if (httpCode == 404) {
+      // Tarjeta o lector no reconocido
+      beepError();
+    } else if (httpCode == 403) {
+      // Sin membresía, inactivo o suspendido
+      beepWarning();
+    } else {
+      // Errores de servidor u otros
+      beepError();
+    }
   }
 
   http.end();

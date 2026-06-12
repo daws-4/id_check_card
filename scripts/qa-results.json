@@ -104,9 +104,9 @@
       "detail": "404"
     },
     {
-      "test": "ESP32 entrada 201",
+      "test": "ESP32 entrada 200",
       "ok": true,
-      "detail": "201"
+      "detail": "200"
     },
     {
       "test": "ESP32 type=entrada",
@@ -114,9 +114,9 @@
       "detail": "entrada"
     },
     {
-      "test": "ESP32 salida 201",
+      "test": "ESP32 salida 200",
       "ok": true,
-      "detail": "201"
+      "detail": "200"
     },
     {
       "test": "ESP32 type=salida",
@@ -139,14 +139,14 @@
       "detail": "403"
     },
     {
-      "test": "ESP32 relocation 201",
+      "test": "ESP32 relocation 200",
       "ok": true,
-      "detail": "201"
+      "detail": "200"
     },
     {
       "test": "ESP32 reloc correct org",
       "ok": true,
-      "detail": "6a29905d8b987b064b2c12b4 vs 6a29905d8b987b064b2c12b4"
+      "detail": "6a2b5c7ec35f456986e39618 vs 6a2b5c7ec35f456986e39618"
     },
     {
       "test": "Notif opt-in vacio skipped",
@@ -166,10 +166,10 @@
     {
       "test": "Notif has channels[]",
       "ok": true,
-      "detail": "[\"push\",\"telegram\"]"
+      "detail": "[\"push\",\"email\"]"
     },
     {
-      "test": "Worker telegram rejected",
+      "test": "Worker email rejected",
       "ok": true,
       "detail": "ValidationError"
     },
@@ -181,12 +181,12 @@
     {
       "test": "Perf /users?type=users <500ms",
       "ok": true,
-      "detail": "281ms"
+      "detail": "163ms"
     },
     {
       "test": "Perf /organizations <500ms",
       "ok": true,
-      "detail": "200ms"
+      "detail": "91ms"
     },
     {
       "test": "Perf /attendance <500ms",
@@ -196,7 +196,7 @@
     {
       "test": "Perf /readers <500ms",
       "ok": true,
-      "detail": "238ms"
+      "detail": "228ms"
     }
   ]
 }

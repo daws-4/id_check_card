@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Notifications not enabled for this organization', skipped: true });
     }
 
-    const activeChannels = channels;
+    const activeChannels = channels.filter((ch: string) => ch === 'push' || ch === 'email');
 
     // 4. Build the notification payload for n8n
     const fullName = `${user.name} ${user.last_name || ''}`.trim();
@@ -72,8 +72,6 @@ export async function POST(req: Request) {
       channels: activeChannels, // Array of channels to dispatch to
       message,
       recipient: {
-        telegram_chat_id: user.telegram_chat_id || null,
-        whatsapp_phone: user.whatsapp_phone || null,
         push_device_token: user.push_device_token || null,
         email: user.email,
       },

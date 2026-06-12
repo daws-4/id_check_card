@@ -75,7 +75,7 @@ const UserSchema: Schema = new Schema({
   strict_schedule_enforcement: { type: Boolean, default: false },
   // Notification channels - array allows multi-select. Empty array = disabled (opt-in)
   notification_channels: {
-    type: [{ type: String, enum: ['telegram', 'push', 'email'] }],
+    type: [{ type: String, enum: ['push', 'email'] }],
     default: [],
     validate: {
       validator: function(this: any, v: string[]) {
