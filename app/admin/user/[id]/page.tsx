@@ -11,11 +11,14 @@ import { Select, SelectItem } from "@heroui/select";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/modal";
 import { Switch } from "@heroui/switch";
 import { Spinner } from "@heroui/spinner";
-import { ArrowLeft, User as UserIcon, Contact, Activity, QrCode, ExternalLink, Building2, Copy, Check, HeartPulse, ShieldAlert, Upload, Trash2, CreditCard, ZoomIn, Mail, Key, ShieldCheck } from "lucide-react";
+import { ArrowLeft, User as UserIcon, Contact, Activity, QrCode, ExternalLink, Building2, Copy, Check, HeartPulse, ShieldAlert, Upload, Trash2, CreditCard, ZoomIn, Mail, Key, ShieldCheck, CheckCircle2, AlertCircle, Lock } from "lucide-react";
 
 export default function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const { isOpen: isPwdOpen, onOpen: onPwdOpen, onOpenChange: onPwdOpenChange } = useDisclosure();
+  const { isOpen: isEnrolOpen, onOpen: onEnrolOpen, onOpenChange: isEnrolOpenChange, onClose: onEnrolClose } = useDisclosure();
+  const [enrolStep, setEnrolStep] = useState<'idle' | 'starting' | 'waiting' | 'writing' | 'success' | 'failed' | 'locked'>('idle');
+  const [enrolError, setEnrolError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [newPassword, setNewPassword] = useState("");
   const [isChangingPwd, setIsChangingPwd] = useState(false);
@@ -55,6 +58,42 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    if (enrolStep !== 'waiting' && enrolStep !== 'writing') return;
+
+    const eventSource = new EventSource("/api/stream");
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.userId === id) {
+          fetch(`/api/users/${id}`)
+            .then(r => r.json())
+            .then(u => {
+              if (u.has_nfc_card) {
+                setEnrolStep('success');
+                setFormData(prev => ({ ...prev, has_nfc_card: true }));
+                fetchData();
+              } else {
+                setEnrolStep('failed');
+                setEnrolError("Error al escribir los datos en la tarjeta física.");
+              }
+            })
+            .catch(() => {
+              setEnrolStep('failed');
+              setEnrolError("Error al verificar el estado de enrolamiento.");
+            });
+        }
+      } catch (e) {
+        // Ignorar
+      }
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [enrolStep, id]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -220,6 +259,57 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     } finally {
       setSaving(false);
     }
+  };
+
+  const startEnrolment = async () => {
+    setEnrolStep('starting');
+    setEnrolError(null);
+    onEnrolOpen();
+    try {
+      const res = await fetch('/api/enrolment/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: id })
+      });
+      if (res.ok) {
+        setEnrolStep('waiting');
+      } else if (res.status === 423) {
+        setEnrolStep('locked');
+      } else {
+        const err = await res.json();
+        setEnrolStep('failed');
+        setEnrolError(err.error || 'Error al iniciar el enrolamiento.');
+      }
+    } catch (e) {
+      setEnrolStep('failed');
+      setEnrolError('Error de red al conectar con el servidor.');
+    }
+  };
+
+  const handleDeleteCard = async () => {
+    if (!confirm('¿Estás seguro de que deseas eliminar/desvincular la credencial física de este usuario? El usuario perderá el acceso físico de inmediato.')) {
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ has_nfc_card: false }),
+      });
+      if (res.ok) {
+        setFormData(prev => ({ ...prev, has_nfc_card: false }));
+        alert("Tarjeta desvinculada correctamente");
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Error al desvincular la tarjeta");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error de red al desvincular la tarjeta");
+    }
+    setSaving(false);
   };
 
   const handleUpdate = async () => {
@@ -448,22 +538,57 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                   <SelectItem key="suspended">Suspendido</SelectItem>
                 </Select>
 
-                <div className="p-4 bg-[var(--color-electric-sapphire)]/5 dark:bg-default-50 rounded-xl mt-4 border border-[var(--color-electric-sapphire)]/20 dark:border-default-100 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-[var(--color-electric-sapphire)]/10 rounded-lg text-[var(--color-electric-sapphire)]">
-                      <CreditCard className="w-5 h-5" />
+                <div className="p-4 bg-[var(--color-electric-sapphire)]/5 dark:bg-default-50 rounded-xl mt-4 border border-[var(--color-electric-sapphire)]/20 dark:border-default-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-[var(--color-electric-sapphire)]/10 rounded-lg text-[var(--color-electric-sapphire)]">
+                        <CreditCard className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Tarjeta NFC Física</h5>
+                        <p className="text-xs text-gray-500 dark:text-default-400">Indica si el usuario tiene una tarjeta vinculada</p>
+                      </div>
                     </div>
-                    <div>
-                      <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Tarjeta NFC Física</h5>
-                      <p className="text-xs text-gray-500 dark:text-default-400">Indica si el usuario tiene una tarjeta vinculada</p>
-                    </div>
+                    
+                    {sessionRole !== 'superadmin' ? (
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${formData.has_nfc_card ? 'bg-success/20 text-success' : 'bg-default/20 text-default-500'}`}>
+                        {formData.has_nfc_card ? "VINCULADA 🟢" : "SIN TARJETA 🔴"}
+                      </span>
+                    ) : (
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${formData.has_nfc_card ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}`}>
+                        {formData.has_nfc_card ? "VINCULADA 🟢" : "SIN TARJETA 🔴"}
+                      </span>
+                    )}
                   </div>
-                  <Switch 
-                    isSelected={formData.has_nfc_card} 
-                    onValueChange={(v) => setFormData({...formData, has_nfc_card: v})}
-                    color="primary"
-                    size="sm"
-                  />
+
+                  {sessionRole === 'superadmin' && (
+                    <div className="mt-3 pt-3 border-t border-divider flex justify-end">
+                      {formData.has_nfc_card ? (
+                        <Button 
+                          size="sm" 
+                          color="danger" 
+                          variant="flat" 
+                          onPress={handleDeleteCard}
+                          startContent={<Trash2 className="w-3.5 h-3.5" />}
+                          className="font-semibold text-xs"
+                          isLoading={saving}
+                        >
+                          Desvincular Tarjeta
+                        </Button>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          color="primary" 
+                          onPress={startEnrolment}
+                          startContent={<CreditCard className="w-3.5 h-3.5" />}
+                          className="font-semibold text-xs text-white"
+                          isLoading={saving}
+                        >
+                          Enrolar Tarjeta Física
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {sessionRole === 'superadmin' && (
@@ -568,6 +693,104 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                         Actualizar Clave
                       </Button>
                     </ModalFooter>
+                  </>
+                )}
+              </ModalContent>
+            </Modal>
+
+            {/* Modal de Enrolamiento Criptográfico NFC (Super Admin) */}
+            <Modal 
+              isOpen={isEnrolOpen} 
+              onOpenChange={isEnrolOpenChange} 
+              onClose={onEnrolClose}
+              isDismissable={enrolStep !== 'waiting' && enrolStep !== 'writing'}
+              backdrop="blur"
+            >
+              <ModalContent>
+                {(onCloseModal) => (
+                  <>
+                    <ModalHeader className="flex flex-col gap-1">Registro de Credencial Física</ModalHeader>
+                    <ModalBody className="pb-8 flex flex-col items-center text-center">
+                      {enrolStep === 'starting' && (
+                        <div className="space-y-4 py-6">
+                          <Spinner size="lg" />
+                          <p className="text-sm text-gray-500">Estableciendo canal de enrolamiento...</p>
+                        </div>
+                      )}
+                      
+                      {enrolStep === 'waiting' && (
+                        <div className="space-y-4 py-4 w-full">
+                          <div className="relative flex items-center justify-center w-24 h-24 bg-primary/10 rounded-full animate-pulse mx-auto">
+                            <CreditCard className="w-12 h-12 text-primary animate-bounce" />
+                          </div>
+                          <h4 className="text-base font-bold text-gray-800 dark:text-gray-200">Acerque Tarjeta Virgen</h4>
+                          <p className="text-xs text-gray-500 max-w-sm px-4">
+                            Por favor, aproxime una tarjeta física Mifare Classic al dispositivo **Registrador** en su escritorio.
+                          </p>
+                          <span className="text-[10px] text-gray-400 block mt-2">Este canal expira automáticamente en 120s</span>
+                        </div>
+                      )}
+
+                      {enrolStep === 'writing' && (
+                        <div className="space-y-4 py-4 w-full">
+                          <Spinner size="lg" color="success" />
+                          <h4 className="text-base font-bold text-emerald-600">Escribiendo Credenciales</h4>
+                          <p className="text-xs text-gray-500 max-w-sm px-4">
+                            Inyectando identificador de usuario y firma HMAC anti-clonación. No retire el chip del lector.
+                          </p>
+                        </div>
+                      )}
+
+                      {enrolStep === 'success' && (
+                        <div className="space-y-4 py-4 w-full">
+                          <div className="flex items-center justify-center w-20 h-20 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 rounded-full mx-auto">
+                            <CheckCircle2 className="w-10 h-10" />
+                          </div>
+                          <h4 className="text-base font-bold text-emerald-600">¡Tarjeta Vinculada!</h4>
+                          <p className="text-xs text-gray-500 max-w-sm px-4">
+                            La credencial ha sido programada y ligada criptográficamente al usuario correctamente.
+                          </p>
+                          <Button color="success" onPress={onCloseModal} size="sm" className="mt-4 font-semibold text-white">
+                            Entendido
+                          </Button>
+                        </div>
+                      )}
+
+                      {enrolStep === 'failed' && (
+                        <div className="space-y-4 py-4 w-full">
+                          <div className="flex items-center justify-center w-20 h-20 bg-rose-100 dark:bg-rose-950/50 text-rose-600 rounded-full mx-auto">
+                            <AlertCircle className="w-10 h-10" />
+                          </div>
+                          <h4 className="text-base font-bold text-rose-600">Error en Registro</h4>
+                          <p className="text-xs text-gray-500 max-w-sm px-4">
+                            {enrolError || "Ocurrió un error inesperado al procesar la tarjeta."}
+                          </p>
+                          <div className="flex gap-3 justify-center mt-4">
+                            <Button color="primary" variant="flat" onPress={startEnrolment} size="sm" className="font-semibold">
+                              Reintentar
+                            </Button>
+                            <Button color="default" variant="light" onPress={onCloseModal} size="sm" className="font-semibold">
+                              Cerrar
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {enrolStep === 'locked' && (
+                        <div className="space-y-4 py-4 w-full">
+                          <div className="flex items-center justify-center w-20 h-20 bg-amber-100 dark:bg-amber-950/50 text-amber-600 rounded-full mx-auto">
+                            <Lock className="w-10 h-10" />
+                          </div>
+                          <h4 className="text-base font-bold text-amber-600">Estación Ocupada</h4>
+                          <p className="text-xs text-gray-500 max-w-sm px-4">
+                            Ya existe un proceso de enrolamiento activo iniciado por otro administrador. Espere unos instantes.
+                          </p>
+                          <Button color="default" onPress={onCloseModal} size="sm" className="mt-4 font-semibold">
+                            Cerrar
+                          </Button>
+                        </div>
+                      )}
+                    </ModalBody>
                   </>
                 )}
               </ModalContent>

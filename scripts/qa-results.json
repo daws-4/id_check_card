@@ -1,7 +1,7 @@
 {
-  "passed": 39,
+  "passed": 44,
   "failed": 0,
-  "total": 39,
+  "total": 44,
   "results": [
     {
       "test": "Crear usuario Alexandra",
@@ -124,6 +124,31 @@
       "detail": "salida"
     },
     {
+      "test": "ESP32 bad signature 403",
+      "ok": true,
+      "detail": "403"
+    },
+    {
+      "test": "ESP32 bad signature error message",
+      "ok": true,
+      "detail": "Acceso Denegado: Tarjeta inválida o sospecha de clonación."
+    },
+    {
+      "test": "ESP32 missing crypto params 403",
+      "ok": true,
+      "detail": "403"
+    },
+    {
+      "test": "ESP32 missing crypto error message",
+      "ok": true,
+      "detail": "Faltan parámetros de seguridad de la tarjeta"
+    },
+    {
+      "test": "ESP32 missing signature 403",
+      "ok": true,
+      "detail": "403"
+    },
+    {
       "test": "ESP32 unknown card 404",
       "ok": true,
       "detail": "404"
@@ -146,7 +171,7 @@
     {
       "test": "ESP32 reloc correct org",
       "ok": true,
-      "detail": "6a2b5c7ec35f456986e39618 vs 6a2b5c7ec35f456986e39618"
+      "detail": "6a2c327998c21dd0d9a46fc1 vs 6a2c327998c21dd0d9a46fc1"
     },
     {
       "test": "Notif opt-in vacio skipped",
@@ -181,22 +206,22 @@
     {
       "test": "Perf /users?type=users <500ms",
       "ok": true,
-      "detail": "163ms"
+      "detail": "189ms"
     },
     {
       "test": "Perf /organizations <500ms",
       "ok": true,
-      "detail": "91ms"
+      "detail": "104ms"
     },
     {
       "test": "Perf /attendance <500ms",
       "ok": true,
-      "detail": "196ms"
+      "detail": "203ms"
     },
     {
       "test": "Perf /readers <500ms",
       "ok": true,
-      "detail": "228ms"
+      "detail": "241ms"
     }
   ]
 }

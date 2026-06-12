@@ -10,6 +10,7 @@ import { Membership } from "../models/Membership";
 import { AttendanceLog } from "../models/AttendanceLog";
 import bcrypt from "bcryptjs";
 import fs from "fs";
+import crypto from "crypto";
 
 loadEnvConfig(process.cwd());
 
@@ -17,6 +18,14 @@ const API = "http://127.0.0.1:3000/api";
 let passed = 0;
 let failed = 0;
 const results: { test: string; ok: boolean; detail: string }[] = [];
+
+function computeSignature(cardId: string, cardUid: string): string {
+  const secret = process.env.NFC_SIGNING_KEY || "";
+  const payload = `${cardId.toLowerCase()}:${cardUid.toLowerCase()}`;
+  const hmac = crypto.createHmac('sha256', secret);
+  hmac.update(payload);
+  return hmac.digest('hex').substring(0, 32);
+}
 
 function assert(test: string, condition: boolean, detail = "") {
   if (condition) passed++;
@@ -140,25 +149,54 @@ async function main() {
 
   if (aId) await Membership.findOneAndUpdate({ user_id: aId, organization_id: testOrg._id }, { user_id: aId, organization_id: testOrg._id }, { upsert: true, new: true });
 
-  const e1 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr });
+  const cardUid = "04a1b2c3d4e5f6";
+  const validSig = computeSignature(aId, cardUid);
+
+  // 4a. Verificar firma válida (Entrada y Salida)
+  const e1 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr, card_uid: cardUid, signature: validSig });
   assert("ESP32 entrada 200", e1.status === 200, `${e1.status}`);
   assert("ESP32 type=entrada", e1.data?.log?.type === "entrada", `${e1.data?.log?.type}`);
 
-  const e2 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr });
+  const e2 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr, card_uid: cardUid, signature: validSig });
   assert("ESP32 salida 200", e2.status === 200, `${e2.status}`);
   assert("ESP32 type=salida", e2.data?.log?.type === "salida", `${e2.data?.log?.type}`);
 
-  const u1 = await api("/attendance", "POST", { card_id: "6a2b36418c6b0d2b3c188c99", esp32_id: readerIdStr }); // Valid ObjectId representing non-existent user
+  // 4b. Verificar denegaciones por seguridad de firma (Sospechas de clonación)
+  const badSig = validSig.substring(0, 31) + (validSig[31] === '0' ? '1' : '0');
+  const secFail1 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr, card_uid: cardUid, signature: badSig });
+  assert("ESP32 bad signature 403", secFail1.status === 403, `${secFail1.status}`);
+  assert("ESP32 bad signature error message", secFail1.data?.error === "Acceso Denegado: Tarjeta inválida o sospecha de clonación.", `${secFail1.data?.error}`);
+
+  const secFail2 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr });
+  assert("ESP32 missing crypto params 403", secFail2.status === 403, `${secFail2.status}`);
+  assert("ESP32 missing crypto error message", secFail2.data?.error === "Faltan parámetros de seguridad de la tarjeta", `${secFail2.data?.error}`);
+
+  const secFail3 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr, card_uid: cardUid });
+  assert("ESP32 missing signature 403", secFail3.status === 403, `${secFail3.status}`);
+
+  // 4c. Otras validaciones con firmas válidas correspondientes
+  const unknownCardId = "6a2b36418c6b0d2b3c188c99";
+  const u1 = await api("/attendance", "POST", { 
+    card_id: unknownCardId, 
+    esp32_id: readerIdStr, 
+    card_uid: cardUid, 
+    signature: computeSignature(unknownCardId, cardUid) 
+  });
   assert("ESP32 unknown card 404", u1.status === 404, `${u1.status}`);
 
   reader!.status = "maintenance"; await reader!.save();
-  const m1 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr });
+  const m1 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr, card_uid: cardUid, signature: validSig });
   assert("ESP32 maintenance 403", m1.status === 403, `${m1.status}`);
   reader!.status = "active"; await reader!.save();
 
   await User.deleteMany({ email: "out@test.com" });
   const out = await User.create({ name: "Outsider", email: "out@test.com", role: "user", status: "active" });
-  const o1 = await api("/attendance", "POST", { card_id: out._id.toString(), esp32_id: readerIdStr });
+  const o1 = await api("/attendance", "POST", { 
+    card_id: out._id.toString(), 
+    esp32_id: readerIdStr, 
+    card_uid: cardUid, 
+    signature: computeSignature(out._id.toString(), cardUid) 
+  });
   assert("ESP32 no membership 403", o1.status === 403, `${o1.status}`);
   await User.deleteOne({ _id: out._id });
 
@@ -166,7 +204,7 @@ async function main() {
   const newOrg = await Organization.create({ name: "OrgReloc", type: "company" });
   reader!.organization_id = newOrg._id; await reader!.save();
   await Membership.create({ user_id: aId, organization_id: newOrg._id });
-  const r1 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr });
+  const r1 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr, card_uid: cardUid, signature: validSig });
   assert("ESP32 relocation 200", r1.status === 200, `${r1.status}`);
   assert("ESP32 reloc correct org", r1.data?.log?.organization_id === newOrg._id.toString(), `${r1.data?.log?.organization_id} vs ${newOrg._id}`);
   reader!.organization_id = testOrg._id; await reader!.save();

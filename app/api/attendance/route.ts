@@ -64,7 +64,7 @@ export async function POST(req: Request) {
     const bodyStart = Date.now();
     const body = await req.json();
     console.log(`${TAG} POST body parsed (${elapsed(bodyStart)}):`, JSON.stringify(body));
-    const { card_id, esp32_id } = body;
+    const { card_id, esp32_id, card_uid, signature, mobile_token } = body;
 
     if (!card_id || !esp32_id) {
       console.warn(`${TAG} POST 400 — Missing fields: card_id=${card_id}, esp32_id=${esp32_id}`);
@@ -72,6 +72,43 @@ export async function POST(req: Request) {
         { error: 'Missing card_id or esp32_id' },
         { status: 400 }
       );
+    }
+
+    // Cryptographic validation if NFC_SIGNING_KEY is configured
+    if (process.env.NFC_SIGNING_KEY) {
+      if (mobile_token) {
+        // --- VALIDACIÓN DE CREDENCIAL MÓVIL DINÁMICA (HCE / QR) ---
+        const { verifyDynamicMobileToken } = await import('@/lib/nfcSecurity');
+        const isTokenValid = verifyDynamicMobileToken(card_id, mobile_token);
+        if (!isTokenValid) {
+          console.warn(`${TAG} POST 403 — Dynamic mobile token expired or invalid. card_id=${card_id}, mobile_token=${mobile_token}`);
+          return NextResponse.json(
+            { error: 'Acceso Denegado: Token NFC móvil vencido o inválido.' },
+            { status: 403 }
+          );
+        }
+        console.log(`${TAG} Dynamic mobile token verified successfully for card_id=${card_id}`);
+      } else {
+        // --- VALIDACIÓN DE TARJETA FÍSICA CLÁSICA (BIND-TO-UID) ---
+        if (!card_uid || !signature) {
+          console.warn(`${TAG} POST 403 — Missing cryptographic parameters: card_uid=${card_uid}, signature=${signature}`);
+          return NextResponse.json(
+            { error: 'Faltan parámetros de seguridad de la tarjeta' },
+            { status: 403 }
+          );
+        }
+
+        const { verifyNFCCardSignature } = await import('@/lib/nfcSecurity');
+        const isSignatureValid = verifyNFCCardSignature(card_id, card_uid, signature);
+        if (!isSignatureValid) {
+          console.warn(`${TAG} POST 403 — Cryptographic signature mismatch. Potential cloning detected. card_id=${card_id}, card_uid=${card_uid}, signature=${signature}`);
+          return NextResponse.json(
+            { error: 'Acceso Denegado: Tarjeta inválida o sospecha de clonación.' },
+            { status: 403 }
+          );
+        }
+        console.log(`${TAG} NFC signature verified successfully for card_id=${card_id}`);
+      }
     }
 
     // DB Connection

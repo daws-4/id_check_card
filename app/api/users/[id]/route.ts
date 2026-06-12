@@ -89,7 +89,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       }
       updateData.$set.email = email;
     }
-    if (has_nfc_card !== undefined) updateData.$set.has_nfc_card = has_nfc_card;
+    if (has_nfc_card !== undefined) {
+      if (sessionUserRole !== 'superadmin') {
+        return NextResponse.json({ error: 'No tienes permiso para modificar el estado de la tarjeta NFC. Acción reservada a Super Admin.' }, { status: 403 });
+      }
+      updateData.$set.has_nfc_card = has_nfc_card;
+    }
     
     if (birth_date) updateData.$set.birth_date = birth_date;
     else if (birth_date === "") updateData.$unset.birth_date = 1;

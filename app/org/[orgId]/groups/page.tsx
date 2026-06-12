@@ -15,6 +15,8 @@ interface Group {
   _id: string;
   name: string;
   type: string;
+  memberCount?: number;
+  leaderName?: string;
 }
 
 export default function GroupsPage() {
@@ -107,6 +109,8 @@ export default function GroupsPage() {
         <TableHeader>
           <TableColumn>NOMBRE</TableColumn>
           <TableColumn>TIPO</TableColumn>
+          <TableColumn>LÍDER</TableColumn>
+          <TableColumn>INTEGRANTES</TableColumn>
           <TableColumn>ACCIONES</TableColumn>
         </TableHeader>
         <TableBody
@@ -117,12 +121,22 @@ export default function GroupsPage() {
             <TableRow key={group._id} className="cursor-pointer hover:bg-default-100">
               <TableCell className="font-semibold">{group.name}</TableCell>
               <TableCell>
-                <span className="capitalize px-2 py-1 bg-default-200 rounded-full text-xs">
-                  {group.type}
+                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${group.type === 'work' ? 'bg-primary/20 text-primary' : 'bg-warning/20 text-warning'}`}>
+                  {group.type === 'work' ? 'Trabajo' : 'Estudio'}
                 </span>
               </TableCell>
               <TableCell>
-                <Button size="sm" variant="flat" onPress={() => router.push(`/org/${orgId}/groups/${group._id}`)}>
+                <span className="text-sm font-medium text-default-600">
+                  {group.leaderName || "Sin líder"}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-sm font-semibold bg-default-100 dark:bg-zinc-800 px-2.5 py-1 rounded-xl">
+                  {group.memberCount ?? 0}
+                </span>
+              </TableCell>
+              <TableCell>
+                <Button size="sm" variant="flat" className="rounded-xl font-semibold" onPress={() => router.push(`/org/${orgId}/groups/${group._id}`)} onClick={(e) => e.stopPropagation()}>
                   Ver Detalles
                 </Button>
               </TableCell>

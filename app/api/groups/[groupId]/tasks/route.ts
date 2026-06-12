@@ -84,3 +84,55 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ group
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
+export async function PUT(req: Request, { params }: { params: Promise<{ groupId: string }> }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { groupId } = await params;
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+      return NextResponse.json({ error: "Invalid group ID" }, { status: 400 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const taskId = searchParams.get("task_id");
+
+    if (!taskId || !mongoose.Types.ObjectId.isValid(taskId)) {
+      return NextResponse.json({ error: "Invalid task_id" }, { status: 400 });
+    }
+
+    const body = await req.json();
+    const { title, description, due_date, is_recurring, recurrence } = body;
+
+    if (!title) {
+      return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+
+    await connectDB();
+    const updateData: any = { title, description, is_recurring: !!is_recurring };
+    if (due_date) {
+      updateData.due_date = new Date(due_date);
+    } else {
+      updateData.$unset = { due_date: "" }; // Remove due_date if not specified
+    }
+    if (is_recurring && recurrence) {
+      updateData.recurrence = recurrence;
+    } else {
+      updateData.$unset = { ...updateData.$unset, recurrence: "" };
+    }
+
+    const updated = await Task.findOneAndUpdate(
+      { _id: taskId, group_id: groupId },
+      updateData,
+      { new: true }
+    );
+
+    if (!updated) return NextResponse.json({ error: "Task not found" }, { status: 404 });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("Error updating task:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

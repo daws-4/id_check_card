@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import mongoose from "mongoose";
 import { Group } from "@/models/Group";
+import { GroupMembership } from "@/models/GroupMembership";
+import { User } from "@/models/User";
 import connectDB from "@/config/db";
 
 export async function GET(req: Request) {
@@ -36,8 +38,26 @@ export async function GET(req: Request) {
       .skip(skip)
       .limit(limit);
 
+    const groupsWithDetails = await Promise.all(
+      groups.map(async (group) => {
+        const [memberCount, leaderMembership] = await Promise.all([
+          GroupMembership.countDocuments({ group_id: group._id }),
+          GroupMembership.findOne({ group_id: group._id, role: 'leader' }).populate('user_id', 'name last_name')
+        ]);
+
+        const leaderUser = leaderMembership?.user_id as any;
+        const leaderName = leaderUser ? `${leaderUser.name} ${leaderUser.last_name || ""}`.trim() : "Sin líder";
+
+        return {
+          ...group.toObject(),
+          memberCount,
+          leaderName
+        };
+      })
+    );
+
     return NextResponse.json({
-      groups,
+      groups: groupsWithDetails,
       total,
       pages: Math.ceil(total / limit),
       currentPage: page
