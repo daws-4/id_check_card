@@ -60,7 +60,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     const body = await req.json();
-    const { name, last_name, email, password, has_nfc_card, nfc_card_id, birth_date, document_id, blood_type, user_type, emergency_contacts, insurance_info, residence_info, strict_schedule_enforcement, photo_url, status } = body;
+    const { name, last_name, email, password, has_nfc_card, birth_date, document_id, blood_type, user_type, emergency_contacts, insurance_info, residence_info, strict_schedule_enforcement, photo_url, status } = body;
 
     if (photo_url !== undefined && photo_url !== user.photo_url) {
       if (sessionUserRole !== 'superadmin' && sessionUserRole !== 'org_admin' && sessionUserId !== id) {
@@ -90,18 +90,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       updateData.$set.email = email;
     }
     if (has_nfc_card !== undefined) updateData.$set.has_nfc_card = has_nfc_card;
-    
-    if (nfc_card_id !== undefined) {
-      if (nfc_card_id === "") {
-        updateData.$unset.nfc_card_id = 1;
-      } else {
-        const existingNfc = await User.findOne({ nfc_card_id, _id: { $ne: id } });
-        if (existingNfc) {
-          return NextResponse.json({ error: 'La tarjeta NFC ya está asignada a otro usuario' }, { status: 409 });
-        }
-        updateData.$set.nfc_card_id = nfc_card_id;
-      }
-    }
     
     if (birth_date) updateData.$set.birth_date = birth_date;
     else if (birth_date === "") updateData.$unset.birth_date = 1;

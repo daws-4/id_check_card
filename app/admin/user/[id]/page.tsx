@@ -40,7 +40,6 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     document_id: "",
     birth_date: "",
     blood_type: "",
-    nfc_card_id: "",
     has_nfc_card: false,
     role: "normal",
     status: "pending",
@@ -84,7 +83,6 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
           document_id: u.document_id || "",
           birth_date: u.birth_date ? new Date(u.birth_date).toISOString().split('T')[0] : "",
           blood_type: u.blood_type || "",
-          nfc_card_id: u.nfc_card_id || "",
           has_nfc_card: !!u.has_nfc_card,
           role: u.role || "normal",
           status: u.status || "pending",
@@ -689,7 +687,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                             </span>
                           </td>
                           <td className="py-3 px-5 text-sm text-gray-500">
-                            {log.reader_id?.location || log.reader_id?.esp32_id || 'N/A'}
+                            {log.reader_id?.location || log.reader_id?._id || 'N/A'}
                           </td>
                         </tr>
                       ))}

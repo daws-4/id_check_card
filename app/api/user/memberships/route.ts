@@ -22,9 +22,14 @@ export async function GET() {
     const memberships = await Membership.find({ user_id: userId })
       .populate('organization_id', 'name type settings');
 
+    // Filter memberships to only include those where organization type is 'gym' or 'membership_venue'
+    const filteredMemberships = memberships.filter((m: any) => 
+      m.organization_id && (m.organization_id.type === 'gym' || m.organization_id.type === 'membership_venue')
+    );
+
     // 2. Fetch available plans and payment instructions for each organization
     const enrichedMemberships = await Promise.all(
-      memberships.map(async (membership: any) => {
+      filteredMemberships.map(async (membership: any) => {
         const orgId = membership.organization_id._id;
         const plans = await MembershipPlan.find({ organization_id: orgId, active: true });
         

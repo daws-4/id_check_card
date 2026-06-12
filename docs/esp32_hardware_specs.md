@@ -6,7 +6,7 @@
 |-------|-------|
 | **URL** | `POST https://<TU_DOMINIO>/api/attendance` |
 | **Content-Type** | `application/json` |
-| **Autenticación** | Ninguna (el ESP32 se valida por su `esp32_id` registrado) |
+| **Autenticación** | Ninguna (el ESP32 se valida por el ID de lector generado en el sistema) |
 
 ## Estructura del Body (JSON)
 
@@ -22,7 +22,7 @@
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | `card_id` | `string` | El UID que el módulo RFID/NFC (RC522 o PN532) lee de la tarjeta. En nuestro sistema, este UID corresponde al `_id` de MongoDB del usuario (ObjectId de 24 caracteres hex). |
-| `esp32_id` | `string` | Identificador único del dispositivo ESP32, pre-registrado en el panel de Súper Admin bajo "Lectores y Dispositivos". Ejemplo: `"ESP32_ENTRADA_01"`. |
+| `esp32_id` | `string` | Identificador único del lector (el `_id` de MongoDB del documento Reader en la base de datos). Ejemplo: `"60d5ec4b1234567890123456"`. |
 
 ## Respuestas del Backend
 
@@ -89,11 +89,11 @@ o
 ```
 ESP32 envía { card_id, esp32_id }
       │
-      ├─ 1. Buscar Reader por esp32_id
+      ├─ 1. Buscar Reader por _id
       │     └─ ¿No existe? → 404
       │     └─ ¿status ≠ active? → 403
       │
-      ├─ 2. Buscar User por nfc_card_id = card_id
+      ├─ 2. Buscar User por _id = card_id
       │     └─ ¿No existe? → 404
       │
       ├─ 3. Verificar Membership (user + reader.organization)
@@ -164,13 +164,13 @@ void sendAttendance(String cardId) {
 
 1. Navegar a **Lectores y Dispositivos** en el panel de Súper Admin.
 2. Crear un nuevo lector con:
-   - **ESP32 ID**: El mismo string hardcodeado en el firmware (ej: `ESP32_ENTRADA_01`)
+    - **ID Lector**: El identificador generado automáticamente por la base de datos (copiado desde el panel web tras crearlo).
    - **Organización**: La org a la que pertenece la puerta/entrada
    - **Ubicación**: Descripción física (ej: "Entrada Principal Edificio A")
 3. El lector debe estar en estado **Activo** para aceptar registros.
 
 ## Formato de la Tarjeta NFC
 
-La tarjeta NFC debe contener el **ObjectId de MongoDB** del usuario como su UID readable. Este valor de 24 caracteres hexadecimales (ejemplo: `69c0b8f0191fe3d21ef3385a`) se almacena en el campo `nfc_card_id` del documento del usuario en la base de datos.
+La tarjeta NFC debe contener el **ObjectId de MongoDB** del usuario como su UID readable. Este valor de 24 caracteres hexadecimales (ejemplo: `69c0b8f0191fe3d21ef3385a`) corresponde al campo `_id` del documento del usuario en la base de datos.
 
 Cuando el módulo RC522/PN532 lee la tarjeta, debe extraer este UID y enviarlo como `card_id` en el JSON del POST.

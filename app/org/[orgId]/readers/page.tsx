@@ -11,7 +11,6 @@ import { Wifi, WifiOff, Wrench, Activity } from "lucide-react";
 
 interface ReaderData {
   _id: string;
-  esp32_id: string;
   name?: string;
   location?: string;
   status: "active" | "inactive" | "maintenance";
@@ -95,7 +94,7 @@ export default function OrgReadersPage() {
   };
 
   const getDisplayName = (reader: ReaderData) => {
-    return reader.name || reader.esp32_id;
+    return reader.name || reader._id;
   };
 
   const formatLastReading = (iso: string | null) => {
@@ -160,7 +159,7 @@ export default function OrgReadersPage() {
       <Table aria-label="Readers table">
         <TableHeader>
           <TableColumn>DISPOSITIVO</TableColumn>
-          <TableColumn>ID ESP32</TableColumn>
+          <TableColumn>ID LECTOR (SYSTEM ID)</TableColumn>
           <TableColumn>UBICACIÓN</TableColumn>
           <TableColumn>GRUPO</TableColumn>
           <TableColumn>ESTADO</TableColumn>
@@ -183,11 +182,11 @@ export default function OrgReadersPage() {
                   <div className="flex flex-col">
                     <span className="font-semibold">{getDisplayName(reader)}</span>
                     {reader.name && (
-                      <span className="text-xs text-default-400 font-mono">{reader.esp32_id}</span>
+                      <span className="text-xs text-default-400 font-mono">{reader._id}</span>
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="font-mono text-xs text-default-500">{reader.esp32_id}</TableCell>
+                <TableCell className="font-mono text-xs text-default-500">{reader._id}</TableCell>
                 <TableCell>{reader.location || "—"}</TableCell>
                 <TableCell>
                   <span className="text-xs text-default-500">
@@ -228,7 +227,7 @@ export default function OrgReadersPage() {
               <ModalHeader className="flex flex-col gap-1">
                 Editar Lector
                 {editReader && (
-                  <span className="text-xs text-default-400 font-mono font-normal">{editReader.esp32_id}</span>
+                  <span className="text-xs text-default-400 font-mono font-normal">{editReader._id}</span>
                 )}
               </ModalHeader>
               <ModalBody>

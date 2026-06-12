@@ -16,7 +16,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ groupId:
     }
 
     await connectDB();
-    const members = await GroupMembership.find({ group_id: groupId }).populate("user_id", "name email nfc_card_id");
+    const members = await GroupMembership.find({ group_id: groupId }).populate("user_id", "name email has_nfc_card");
 
     return NextResponse.json(members);
   } catch (error) {
@@ -78,7 +78,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ groupId
       role: role || 'member'
     });
 
-    const populatedMembership = await newMembership.populate("user_id", "name email nfc_card_id");
+    const populatedMembership = await newMembership.populate("user_id", "name email has_nfc_card");
 
     return NextResponse.json(populatedMembership, { status: 201 });
   } catch (error) {

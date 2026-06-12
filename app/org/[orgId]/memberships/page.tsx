@@ -58,6 +58,7 @@ export default function OrgMembershipsPage() {
   const [gracePeriod, setGracePeriod] = useState<number>(0);
   const [isValidationEnabled, setIsValidationEnabled] = useState<boolean>(false);
   const [bankDetails, setBankDetails] = useState<string>("");
+  const [requiresMembership, setRequiresMembership] = useState<boolean | null>(null);
 
   // Modals
   const planModal = useDisclosure();
@@ -93,6 +94,9 @@ export default function OrgMembershipsPage() {
         setGracePeriod(orgData.settings?.grace_period_days || 0);
         setIsValidationEnabled(orgData.settings?.is_membership_validation_enabled || false);
         setBankDetails(orgData.settings?.bank_details || "");
+        const type = orgData.type || "";
+        const validationEnabled = type === 'gym' || type === 'membership_venue';
+        setRequiresMembership(!!validationEnabled);
       }
 
       // 2. Fetch Plans
@@ -240,6 +244,18 @@ export default function OrgMembershipsPage() {
     return (
       <div className="flex items-center justify-center h-96">
         <Spinner size="lg" label="Cargando facturación y membresías..." />
+      </div>
+    );
+  }
+
+  if (requiresMembership === false) {
+    return (
+      <div className="max-w-2xl mx-auto mt-12 p-8 bg-content1 rounded-2xl border border-divider text-center space-y-4">
+        <AlertTriangle className="w-12 h-12 mx-auto text-warning animate-bounce" />
+        <h3 className="text-xl font-bold">Módulo de Membresías Inactivo</h3>
+        <p className="text-sm text-gray-500">
+          Esta organización no tiene habilitado el uso de membresías. Si necesitas usarlo, puedes activarlo habilitando la "Validación de Membresía" en la sección de ajustes de la organización o configurando el tipo de organización adecuado.
+        </p>
       </div>
     );
   }

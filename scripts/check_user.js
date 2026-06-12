@@ -18,10 +18,10 @@ async function main() {
   const UserSchema = new mongoose.Schema({}, { strict: false, collection: "users" });
   const User = mongoose.models.User || mongoose.model("User", UserSchema);
 
-  // Query safely by nfc_card_id and email (without _id)
-  const usersByNfc = await User.find({ nfc_card_id: "OUT99" });
-  console.log("Users found by nfc_card_id = OUT99:");
-  console.log(JSON.stringify(usersByNfc, null, 2));
+  // Query safely by name
+  const usersByName = await User.find({ name: "Outsider" });
+  console.log("Users found by name = Outsider:");
+  console.log(JSON.stringify(usersByName, null, 2));
 
   const usersByEmail = await User.find({ email: "out@test.com" });
   console.log("Users found by email = out@test.com:");

@@ -94,7 +94,6 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
     document_id: "",
     birth_date: "",
     blood_type: "",
-    nfc_card_id: "",
     has_nfc_card: false,
     role: "normal",
     status: "pending",
@@ -113,6 +112,7 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
   const [gymExpirationDate, setGymExpirationDate] = useState("");
   const [gymRemainingSessions, setGymRemainingSessions] = useState<number | "">("");
   const [gymNotes, setGymNotes] = useState("");
+  const [requiresMembership, setRequiresMembership] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -121,12 +121,13 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [userRes, logRes, membRes, sessionRes, profileReqRes] = await Promise.all([
+      const [userRes, logRes, membRes, sessionRes, profileReqRes, orgRes] = await Promise.all([
         fetch(`/api/users/${id}`),
         fetch(`/api/attendance?user_id=${id}`),
         fetch(`/api/memberships?user_id=${id}`),
         fetch(`/api/auth/session`),
-        fetch(`/api/users/${id}/profile-request`)
+        fetch(`/api/users/${id}/profile-request`),
+        fetch(`/api/organizations/${orgId}`)
       ]);
       
       if (sessionRes.ok) {
@@ -146,7 +147,6 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
           document_id: u.document_id || "",
           birth_date: u.birth_date ? new Date(u.birth_date).toISOString().split('T')[0] : "",
           blood_type: u.blood_type || "",
-          nfc_card_id: u.nfc_card_id || "",
           has_nfc_card: !!u.has_nfc_card,
           role: u.role || "normal",
           status: u.status || "pending",
@@ -190,6 +190,12 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
       if (profileReqRes.ok) {
         const reqData = await profileReqRes.json();
         setProfileRequest(reqData.request || null);
+      }
+      if (orgRes.ok) {
+        const orgData = await orgRes.json();
+        const type = orgData.type || "";
+        const validationEnabled = type === 'gym' || type === 'membership_venue';
+        setRequiresMembership(!!validationEnabled);
       }
     } catch (error) {
       console.error(error);
@@ -347,7 +353,7 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
       });
 
       let membershipOk = true;
-      if (orgMembership && orgMembership.organization_id?.type === 'gym') {
+      if (orgMembership && requiresMembership) {
         const membRes = await fetch(`/api/memberships/${orgMembership._id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -651,10 +657,7 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
               </CardBody>
             </Card>
 
-            {memberships.find((m: any) => {
-              const mOrgId = typeof m.organization_id === 'object' ? m.organization_id._id : m.organization_id;
-              return mOrgId === orgId;
-            })?.organization_id?.type === 'gym' && (
+            {requiresMembership && (
               <Card className="shadow-sm border border-divider bg-content1 md:col-span-2">
                 <CardBody className="p-6 space-y-4">
                   <h4 className="font-semibold text-gray-700 dark:text-gray-300 border-b border-divider pb-2 mb-4 flex items-center gap-2">
@@ -914,7 +917,7 @@ export default function OrgMemberDetailPage({ params }: { params: Promise<{ orgI
                             </span>
                           </td>
                           <td className="py-3 px-5 text-sm text-gray-500">
-                            {log.reader_id?.location || log.reader_id?.esp32_id || 'N/A'}
+                            {log.reader_id?.location || log.reader_id?._id || 'N/A'}
                           </td>
                         </tr>
                       ))}

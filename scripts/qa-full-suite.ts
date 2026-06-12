@@ -130,32 +130,33 @@ async function main() {
 
   // ═══ FASE 4: ESP32 ═══
   const alex = await User.findById(aId);
-  if (alex) { alex.nfc_card_id = alex._id.toString(); alex.status = "active"; await alex.save(); }
+  if (alex) { alex.status = "active"; await alex.save(); }
 
-  let reader = await Reader.findOne({ esp32_id: "ESP32_QA_01" });
-  if (!reader) reader = await Reader.create({ esp32_id: "ESP32_QA_01", organization_id: testOrg._id, status: "active", location: "QA" });
+  let reader = await Reader.findOne({ location: "QA", organization_id: testOrg._id });
+  if (!reader) reader = await Reader.create({ organization_id: testOrg._id, status: "active", location: "QA" });
   else { reader.organization_id = testOrg._id; reader.status = "active"; await reader.save(); }
+  const readerIdStr = reader._id.toString();
 
   if (aId) await Membership.findOneAndUpdate({ user_id: aId, organization_id: testOrg._id }, { user_id: aId, organization_id: testOrg._id }, { upsert: true, new: true });
 
-  const e1 = await api("/attendance", "POST", { card_id: aId, esp32_id: "ESP32_QA_01" });
-  assert("ESP32 entrada 201", e1.status === 201, `${e1.status}`);
+  const e1 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr });
+  assert("ESP32 entrada 200", e1.status === 200, `${e1.status}`);
   assert("ESP32 type=entrada", e1.data?.log?.type === "entrada", `${e1.data?.log?.type}`);
 
-  const e2 = await api("/attendance", "POST", { card_id: aId, esp32_id: "ESP32_QA_01" });
-  assert("ESP32 salida 201", e2.status === 201, `${e2.status}`);
+  const e2 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr });
+  assert("ESP32 salida 200", e2.status === 200, `${e2.status}`);
   assert("ESP32 type=salida", e2.data?.log?.type === "salida", `${e2.data?.log?.type}`);
 
-  const u1 = await api("/attendance", "POST", { card_id: "FANTASMA", esp32_id: "ESP32_QA_01" });
+  const u1 = await api("/attendance", "POST", { card_id: "6a2b36418c6b0d2b3c188c99", esp32_id: readerIdStr }); // Valid ObjectId representing non-existent user
   assert("ESP32 unknown card 404", u1.status === 404, `${u1.status}`);
 
   reader!.status = "maintenance"; await reader!.save();
-  const m1 = await api("/attendance", "POST", { card_id: aId, esp32_id: "ESP32_QA_01" });
+  const m1 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr });
   assert("ESP32 maintenance 403", m1.status === 403, `${m1.status}`);
   reader!.status = "active"; await reader!.save();
 
-  const out = await User.create({ name: "Outsider", email: "out@test.com", role: "user", status: "active", nfc_card_id: "OUT99" });
-  const o1 = await api("/attendance", "POST", { card_id: "OUT99", esp32_id: "ESP32_QA_01" });
+  const out = await User.create({ name: "Outsider", email: "out@test.com", role: "user", status: "active" });
+  const o1 = await api("/attendance", "POST", { card_id: out._id.toString(), esp32_id: readerIdStr });
   assert("ESP32 no membership 403", o1.status === 403, `${o1.status}`);
   await User.deleteOne({ _id: out._id });
 
@@ -163,8 +164,8 @@ async function main() {
   const newOrg = await Organization.create({ name: "OrgReloc", type: "company" });
   reader!.organization_id = newOrg._id; await reader!.save();
   await Membership.create({ user_id: aId, organization_id: newOrg._id });
-  const r1 = await api("/attendance", "POST", { card_id: aId, esp32_id: "ESP32_QA_01" });
-  assert("ESP32 relocation 201", r1.status === 201, `${r1.status}`);
+  const r1 = await api("/attendance", "POST", { card_id: aId, esp32_id: readerIdStr });
+  assert("ESP32 relocation 200", r1.status === 200, `${r1.status}`);
   assert("ESP32 reloc correct org", r1.data?.log?.organization_id === newOrg._id.toString(), `${r1.data?.log?.organization_id} vs ${newOrg._id}`);
   reader!.organization_id = testOrg._id; await reader!.save();
   await Organization.deleteOne({ _id: newOrg._id });
@@ -193,7 +194,7 @@ async function main() {
     assert("Worker telegram rejected", err.name === "ValidationError", err.name);
   }
 
-  assert("Fire-and-forget (attendance OK despite no n8n)", e1.status === 201, "already OK");
+  assert("Fire-and-forget (attendance OK despite no n8n)", e1.status === 200, "already OK");
 
   // ═══ FASE 6: PERFORMANCE ═══
   for (const ep of ["/users?type=users", "/organizations", "/attendance", "/readers"]) {

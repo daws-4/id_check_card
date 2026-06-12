@@ -36,7 +36,7 @@ export default async function OrgDashboardPage({ params }: { params: { orgId: st
       .sort({ timestamp: -1 })
       .limit(5)
       .populate('user_id', 'name last_name document_id')
-      .populate('reader_id', 'location esp32_id')
+      .populate('reader_id', 'location')
   ]);
   
   return (
@@ -92,7 +92,7 @@ export default async function OrgDashboardPage({ params }: { params: { orgId: st
                       <div>
                         <p className="font-semibold">{log.user_id?.name || "Desconocido"} {log.user_id?.last_name || ""}</p>
                         <p className="text-xs text-default-500">
-                          Lector: {log.reader_id?.location || log.reader_id?.esp32_id || "Desconocido"} •{" "}
+                          Lector: {log.reader_id?.location || log.reader_id?._id || "Desconocido"} •{" "}
                           {new Date(log.timestamp).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </div>

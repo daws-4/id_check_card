@@ -17,7 +17,6 @@ export interface IUser extends Document {
   last_name?: string;
   email: string;
   password_hash?: string;
-  nfc_card_id?: string;
   has_nfc_card: boolean;
   birth_date?: Date;
   document_id?: string;
@@ -50,7 +49,6 @@ const UserSchema: Schema = new Schema({
   last_name: { type: String },
   email: { type: String, required: true },
   password_hash: { type: String },
-  nfc_card_id: { type: String, unique: true, sparse: true },
   has_nfc_card: { type: Boolean, default: false },
   birth_date: { type: Date },
   document_id: { 

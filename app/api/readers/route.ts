@@ -48,30 +48,22 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     console.log(`${TAG} POST body:`, JSON.stringify(body));
-    const { esp32_id, organization_id, location, status, group_id } = body;
+    const { organization_id, location, status, group_id, name } = body;
 
-    if (!esp32_id || !organization_id) {
-      console.warn(`${TAG} POST 400 — Missing fields: esp32_id=${esp32_id}, organization_id=${organization_id}`);
+    if (!organization_id) {
+      console.warn(`${TAG} POST 400 — Missing fields: organization_id=${organization_id}`);
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
-    const checkStart = Date.now();
-    const existingReader = await Reader.findOne({ esp32_id });
-    console.log(`${TAG} POST duplicate check for esp32_id="${esp32_id}" (${elapsed(checkStart)}):`, existingReader ? `EXISTS → id=${existingReader._id}` : 'OK (unique)');
-    if (existingReader) {
-      console.warn(`${TAG} POST 409 — esp32_id="${esp32_id}" already exists`);
-      return NextResponse.json({ error: 'esp32_id already exists' }, { status: 409 });
     }
 
     const createStart = Date.now();
     const newReader = await Reader.create({
-      esp32_id,
       organization_id,
       group_id: group_id || undefined,
+      name,
       location,
       status: status || 'active'
     });
-    console.log(`${TAG} POST reader created (${elapsed(createStart)}): id=${newReader._id}, esp32_id=${newReader.esp32_id}`);
+    console.log(`${TAG} POST reader created (${elapsed(createStart)}): id=${newReader._id}`);
 
     console.log(`${TAG} ────── POST END (${elapsed(reqStart)}) 201 ──────`);
     return NextResponse.json({ message: 'Reader created', reader: newReader }, { status: 201 });

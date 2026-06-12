@@ -79,6 +79,7 @@ export default function MembersPage() {
   const [newStrictSchedule, setNewStrictSchedule] = useState(false);
 
   const [orgType, setOrgType] = useState<string>("");
+  const [requiresMembership, setRequiresMembership] = useState(false);
 
   const { 
     isOpen: isGymModalOpen, 
@@ -123,6 +124,9 @@ export default function MembersPage() {
         const orgData = await orgRes.json();
         setOrgLimit(orgData.max_users_limit || 50);
         setOrgType(orgData.type || "");
+        const type = orgData.type || "";
+        const validationEnabled = type === 'gym' || type === 'membership_venue';
+        setRequiresMembership(!!validationEnabled);
       }
       if (previewRes.ok) {
         const previewData = await previewRes.json();
@@ -467,7 +471,7 @@ export default function MembersPage() {
                 </th>
                 <th className="py-4 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">NOMBRE</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">CORREO</th>
-                {orgType === 'gym' ? (
+                {requiresMembership ? (
                   <>
                     <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">PLAN</th>
                     <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">ESTADO PLAN</th>
@@ -488,13 +492,13 @@ export default function MembersPage() {
             <tbody className="divide-y divide-gray-100 dark:divide-default-100">
               {loading ? (
                 <tr>
-                  <td colSpan={orgType === 'gym' ? 9 : 8} className="py-8 text-center">
+                  <td colSpan={requiresMembership ? 9 : 8} className="py-8 text-center">
                     <Spinner />
                   </td>
                 </tr>
               ) : memberships.length === 0 ? (
                 <tr>
-                  <td colSpan={orgType === 'gym' ? 9 : 8} className="py-8 text-center text-gray-500">
+                  <td colSpan={requiresMembership ? 9 : 8} className="py-8 text-center text-gray-500">
                     No se encontraron miembros en esta organización.
                   </td>
                 </tr>
@@ -513,7 +517,7 @@ export default function MembersPage() {
                       </Link>
                     </td>
                     <td className="py-4 px-6 text-sm">{membership.user_id?.email || "N/A"}</td>
-                    {orgType === 'gym' ? (
+                    {requiresMembership ? (
                       <>
                         <td className="py-4 px-6 text-sm font-semibold">{membership.plan_name || "Sin Plan"}</td>
                         <td className="py-4 px-6">{getPlanStatusBadge(membership.plan_status)}</td>
@@ -553,7 +557,7 @@ export default function MembersPage() {
                             <MoreVertical className="w-4 h-4" />
                           </button>
                         </DropdownTrigger>
-                        {orgType === 'gym' ? (
+                        {requiresMembership ? (
                           <DropdownMenu aria-label="Acciones de miembro">
                             <DropdownItem key="detail" href={`/org/${orgId}/members/${membership.user_id?._id}`}>Ver / Editar Datos</DropdownItem>
                             <DropdownItem key="membership" onPress={() => handleOpenGymModal(membership)}>Gestionar Membresía</DropdownItem>

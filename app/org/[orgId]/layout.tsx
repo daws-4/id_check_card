@@ -7,27 +7,43 @@ import LogoutButton from "@/components/LogoutButton";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { LayoutDashboard, Users, UsersRound, CalendarPlus, Router, Receipt, ArrowLeft, Activity, Menu, CreditCard } from "lucide-react";
 import BillingTrigger from "@/components/BillingTrigger";
-import Sidebar from "@/components/Sidebar";
 import { useSidebar } from "@/components/SidebarContext";
+import dynamic from "next/dynamic";
+
+const Sidebar = dynamic(() => import("@/components/Sidebar"), { ssr: false });
 
 export default function OrgLayout({ children }: { children: ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
   const orgId = params?.orgId as string;
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [requiresMembership, setRequiresMembership] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { setIsOpenMobile } = useSidebar();
 
   useEffect(() => {
+    setMounted(true);
     fetch("/api/auth/session")
       .then(r => r.json())
       .then(s => { if (s?.user?.role === "superadmin") setIsSuperAdmin(true); })
       .catch(() => {});
-  }, []);
+
+    if (orgId) {
+      fetch(`/api/organizations/${orgId}`)
+        .then(r => r.json())
+        .then(org => {
+          const type = org?.type || "";
+          const validationEnabled = type === 'gym' || type === 'membership_venue';
+          setRequiresMembership(!!validationEnabled);
+        })
+        .catch(() => {});
+    }
+  }, [orgId]);
 
   const navItems = [
     { href: `/org/${orgId}`, label: "Tablero", icon: LayoutDashboard },
     { href: `/org/${orgId}/members`, label: "Miembros", icon: Users },
-    { href: `/org/${orgId}/memberships`, label: "Membresías", icon: CreditCard },
+    ...((mounted && requiresMembership) ? [{ href: `/org/${orgId}/memberships`, label: "Membresías", icon: CreditCard }] : []),
     { href: `/org/${orgId}/groups`, label: "Grupos", icon: UsersRound },
     { href: `/org/${orgId}/attendance`, label: "Reportes", icon: CalendarPlus },
     { href: `/org/${orgId}/live`, label: "Monitor en vivo", icon: Activity },

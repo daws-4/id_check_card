@@ -40,7 +40,7 @@ export async function GET(req: Request) {
     const queryStart = Date.now();
     const logs = await AttendanceLog.find(filter)
       .populate('user_id', 'name last_name email photo_url document_id blood_type user_type')
-      .populate('reader_id', 'location esp32_id')
+      .populate('reader_id', 'location')
       .sort({ timestamp: -1 })
       .limit(100);
     console.log(`${TAG} GET query completed: ${logs.length} logs found (${elapsed(queryStart)})`);
@@ -79,12 +79,17 @@ export async function POST(req: Request) {
     await connectDB();
     console.log(`${TAG} POST DB connected (${elapsed(dbStart)})`);
 
-    // 1. Find Reader
+    // 1. Find Reader by its _id (passed as esp32_id for hardware compatibility)
     const step1 = Date.now();
-    const reader = await Reader.findOne({ esp32_id });
-    console.log(`${TAG} [Step 1] Find Reader by esp32_id="${esp32_id}" (${elapsed(step1)}):`, reader ? `found → id=${reader._id}, org=${reader.organization_id}, status=${reader.status}, location=${reader.location}` : 'NOT FOUND');
+    let reader = null;
+    try {
+      reader = await Reader.findById(esp32_id);
+    } catch (e) {
+      // Ignored: Invalid ObjectId format
+    }
+    console.log(`${TAG} [Step 1] Find Reader by id="${esp32_id}" (${elapsed(step1)}):`, reader ? `found → id=${reader._id}, org=${reader.organization_id}, status=${reader.status}, location=${reader.location}` : 'NOT FOUND');
     if (!reader) {
-      console.warn(`${TAG} POST 404 — Reader not found for esp32_id="${esp32_id}"`);
+      console.warn(`${TAG} POST 404 — Reader not found for id="${esp32_id}"`);
       return NextResponse.json(
         { error: 'Reader not found or unauthorized' },
         { status: 404 }
@@ -102,20 +107,13 @@ export async function POST(req: Request) {
     const organization_id = reader.organization_id;
     console.log(`${TAG} POST organization_id=${organization_id}`);
 
-    // 2. Find User (first check nfc_card_id, fallback to _id)
+    // 2. Find User by its _id (passed as card_id)
     const step2 = Date.now();
     let user = null;
     try {
-      user = await User.findOne({ nfc_card_id: card_id });
+      user = await User.findById(card_id);
     } catch (e) {
-      // Ignored: Query error
-    }
-    if (!user) {
-      try {
-        user = await User.findById(card_id);
-      } catch (e) {
-        // Ignored: Invalid ObjectId format
-      }
+      // Ignored: Invalid ObjectId format
     }
     console.log(`${TAG} [Step 2] Find User by _id="${card_id}" (${elapsed(step2)}):`, user ? `found → id=${user._id}, name=${user.name}, email=${user.email}` : 'NOT FOUND');
     if (!user) {
@@ -140,11 +138,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3b. Verify Membership Expiration (Gym, Membership venues or if validation is explicitly enabled)
+    // 3b. Verify Membership Expiration (Gym or Membership venues only)
     const organization = await Organization.findById(organization_id);
     const orgType = organization?.type || 'default';
-    const orgSettings = organization?.settings || {};
-    const requiresValidation = orgSettings.is_membership_validation_enabled || orgType === 'gym' || orgType === 'membership_venue';
+    const requiresValidation = orgType === 'gym' || orgType === 'membership_venue';
 
     if (requiresValidation) {
       const today = new Date();
@@ -184,7 +181,7 @@ export async function POST(req: Request) {
 
       // Validar fecha de expiración tomando en cuenta el Periodo de Gracia Variable
       if (membership.expiration_date) {
-        const graceDays = orgSettings.grace_period_days || 0;
+        const graceDays = organization?.settings?.grace_period_days || 0;
         const expirationWithGrace = new Date(membership.expiration_date);
         expirationWithGrace.setDate(expirationWithGrace.getDate() + graceDays);
 
@@ -373,13 +370,15 @@ export async function POST(req: Request) {
       console.error(`${TAG} [Step 7] Notification setup error:`, notifError);
     }
 
-    console.log(`${TAG} ────── POST END (${elapsed(reqStart)}) 201 — user=${user.name}, type=${type}, status=${status} ──────`);
+    console.log(`${TAG} ────── POST END (${elapsed(reqStart)}) 200 — user=${user.name}, type=${type}, status=${status} ──────`);
     return NextResponse.json(
       { 
         message: 'Attendance logged successfully', 
+        userName: `${user.name} ${user.last_name || ""}`.trim(),
+        user_name: `${user.name} ${user.last_name || ""}`.trim(),
         log: newLog 
       },
-      { status: 201 }
+      { status: 200 }
     );
 
   } catch (error: any) {

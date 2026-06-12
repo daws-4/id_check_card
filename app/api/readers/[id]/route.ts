@@ -19,10 +19,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     await connectDB();
     const { id } = await params;
     const body = await req.json();
-    const { esp32_id, organization_id, location, status, group_id, name } = body;
+    const { organization_id, location, status, group_id, name } = body;
 
     const updateData: any = {};
-    if (esp32_id) updateData.esp32_id = esp32_id;
     if (organization_id) updateData.organization_id = organization_id;
     if (location !== undefined) updateData.location = location;
     if (name !== undefined) updateData.name = name;

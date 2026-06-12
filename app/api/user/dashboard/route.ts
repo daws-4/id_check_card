@@ -145,7 +145,7 @@ export async function GET() {
       organization_id: { $in: orgIds },
     })
       .populate("organization_id", "name")
-      .populate("reader_id", "location esp32_id")
+      .populate("reader_id", "location")
       .sort({ timestamp: -1 })
       .limit(10);
 

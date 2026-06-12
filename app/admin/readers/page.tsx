@@ -21,7 +21,6 @@ interface Group {
 
 interface Reader {
   _id: string;
-  esp32_id: string;
   organization_id: Organization | null;
   group_id?: Group | null;
   location?: string;
@@ -39,7 +38,6 @@ export default function ReadersPage() {
   
   // Form State
   const [selectedReader, setSelectedReader] = useState<Reader | null>(null);
-  const [esp32Id, setEsp32Id] = useState("");
   const [orgId, setOrgId] = useState("");
   const [groupId, setGroupId] = useState("");
   const [location, setLocation] = useState("");
@@ -81,14 +79,12 @@ export default function ReadersPage() {
   const handleOpenModal = (reader?: Reader) => {
     if (reader) {
       setSelectedReader(reader);
-      setEsp32Id(reader.esp32_id);
       setOrgId(reader.organization_id?._id || "");
       setGroupId(reader.group_id?._id || "");
       setLocation(reader.location || "");
       setStatus(reader.status);
     } else {
       setSelectedReader(null);
-      setEsp32Id("");
       setOrgId("");
       setGroupId("");
       setLocation("");
@@ -112,7 +108,6 @@ export default function ReadersPage() {
       setIsSubmitting(true);
       
       const payload = {
-        esp32_id: esp32Id,
         organization_id: orgId,
         group_id: (groupId && groupId !== "none") ? groupId : undefined,
         location,
@@ -159,7 +154,7 @@ export default function ReadersPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[var(--color-lavender-mist)]/50 dark:bg-default-50/50 border-b border-gray-100 dark:border-default-100">
-                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">ID ESP32</th>
+                <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">ID Lector (System ID)</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Organización</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Ubicación</th>
                 <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Estado</th>
@@ -187,7 +182,7 @@ export default function ReadersPage() {
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold bg-[var(--color-electric-sapphire)]/10 text-[var(--color-electric-sapphire)]`}>
                           <Router className="w-5 h-5" />
                         </div>
-                        <span className="font-semibold text-carbon-black dark:text-white font-mono">{reader.esp32_id}</span>
+                        <span className="font-semibold text-carbon-black dark:text-white font-mono">{reader._id}</span>
                       </div>
                     </td>
                     <td className="py-4 px-6">
@@ -233,14 +228,15 @@ export default function ReadersPage() {
                 {selectedReader ? "Editar/Reasignar Lector" : "Registrar Nuevo Lector"}
               </ModalHeader>
               <ModalBody>
-                <Input 
-                  label="ID ESP32" 
-                  placeholder="ej. DEV_001" 
-                  variant="bordered"
-                  value={esp32Id}
-                  onValueChange={setEsp32Id}
-                  isDisabled={!!selectedReader} // Don't allow changing the physical ID easily
-                />
+                {selectedReader && (
+                  <Input 
+                    label="ID Lector (Grabar en ESP32)" 
+                    value={selectedReader._id}
+                    variant="bordered"
+                    isReadOnly
+                    className="font-mono text-sm"
+                  />
+                )}
                 
                 <Select 
                   label="Organización" 

@@ -43,8 +43,7 @@ export async function GET(
       return NextResponse.json({ error: 'Organización no encontrada' }, { status: 404 });
     }
 
-    const orgSettings = org.settings || {};
-    const requiresValidation = orgSettings.is_membership_validation_enabled || org.type === 'gym' || org.type === 'membership_venue';
+    const requiresValidation = org.type === 'gym' || org.type === 'membership_venue';
 
     let isPlanValid = true;
     let membershipDetails: any = null;
@@ -53,7 +52,7 @@ export async function GET(
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const graceDays = orgSettings.grace_period_days || 0;
+      const graceDays = org?.settings?.grace_period_days || 0;
       let isExpired = false;
       let inGracePeriod = false;
 

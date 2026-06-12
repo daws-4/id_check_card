@@ -20,7 +20,6 @@ interface User {
 interface Reader {
   _id: string;
   location: string;
-  esp32_id: string;
 }
 
 interface AttendanceLog {
@@ -266,7 +265,7 @@ export default function AttendancePage() {
               <TableCell>
                 <div className="flex flex-col">
                   <span>{log.reader_id?.location || "Desconocido"}</span>
-                  <span className="text-xs text-default-500 font-mono">{log.reader_id?.esp32_id || "N/A"}</span>
+                  <span className="text-xs text-default-500 font-mono">{log.reader_id?._id || "N/A"}</span>
                 </div>
               </TableCell>
             </TableRow>

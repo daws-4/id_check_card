@@ -53,7 +53,7 @@ export async function GET(req: Request) {
 
     const logs = await AttendanceLog.find(filter)
       .populate('user_id', 'name last_name email document_id')
-      .populate('reader_id', 'location esp32_id')
+      .populate('reader_id', 'location')
       .sort({ timestamp: -1 })
       .limit(5000); // Safety cap
 
@@ -72,7 +72,7 @@ export async function GET(req: Request) {
       'Estado': STATUS_LABELS[log.status] || '—',
       'Variación (min)': log.time_variance_minutes !== undefined ? log.time_variance_minutes : '—',
       'Ubicación Lector': log.reader_id?.location || 'N/A',
-      'ID Lector': log.reader_id?.esp32_id || 'N/A',
+      'ID Lector': log.reader_id?._id?.toString() || 'N/A',
     }));
 
     // Create workbook
